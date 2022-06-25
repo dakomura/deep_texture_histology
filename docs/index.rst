@@ -6,7 +6,7 @@
 Welcome to deep_texture_histology's documentation!
 ==================================================
 
-.. image:: https://deep-texture-histology.readthedocs.io/en/latest/_static/logo/dtr_logo.png
+.. image:: https://deep-texture-histology.readthedocs.io/en/latest/_static/logo/dtr_logo.jpg
 
 .. toctree::
    :maxdepth: 4
