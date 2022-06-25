@@ -2,6 +2,8 @@
 deep_texture_histology : Tools for deep texture representation for histology images.
 ***************************************************************************************
 
+.. image:: https://github.com/dakomura/deep_texture_histology/blob/main/docs/_static/logo/dtr_logo.png
+
 Overview
 ==============
 deep_texture_representation is a python library to calculate deep texture representations (DTRs) for histology images (Cell Reports, 2022).
