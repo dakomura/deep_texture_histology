@@ -53,26 +53,24 @@ class DTR:
            self.archs_dict['efficientnet'] = efficientnet.tfkeras.EfficientNetB7
            self.prep_dict['efficientnet'] = efficientnet.tfkeras 
 
-        self._create_model(self.archs_dict[self.arch], 
-                                    self.layer, 
-                                    self.dim,
-                                    )
+        print(f"arch:{arch}")
+        print(f"layer:{layer}")
+        print(f"dim:{dim}")
+
+        self._create_model()
 
         # preprocess function
         self.prep = self.prep_dict[arch].preprocess_input
 
 
-    def _create_model(self,
-                     arch: str,
-                     layer_name: str,
-                     ) -> None:
+    def _create_model(self) -> None:
 
-        conv_base = arch(
+        conv_base = self.archs_dict[self.arch](
             weights = "imagenet",
             include_top = None,
             input_shape = (None, None, 3))
 
-        x1 = conv_base.get_layer(layer_name).output
+        x1 = conv_base.get_layer(self.layer).output
         _,_,_,c = x1.shape
 
         rng = np.random.default_rng(2022)
@@ -128,15 +126,18 @@ class DTR:
         """
         if type(img) == str:
             img = Image.open(img).convert("RGB")
+            x = np.array(img)
         elif not type(img) == np.ndarray:
             x = np.array(img)
+        else:
+            x = img
 
         if angle is not None:
             x = preprocessing.image.apply_affine_transform(x, theta = angle)
 
         x = np.expand_dims(x, axis=0)
         x = self.prep(x)
-        return self.cbp([x])[0]
+        return np.array(self.cbp([x])[0])
 
     def sim(self, 
             x: np.ndarray,
@@ -172,6 +173,6 @@ class DTR:
         imgs = Parallel(n_jobs=n_jobs)([delayed(self._process_image)(imgfile, angle) for imgfile in img_path])
         dtrs = np.empty((len(imgs), self.dim), astype=float)
         for i, img in enumerate(imgs):
-            dtrs[i,:] = self.cbp([img])[0]
+            dtrs[i,:] = np.array(self.cbp([img])[0])
 
         return dtrs

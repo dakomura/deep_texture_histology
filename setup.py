@@ -3,31 +3,33 @@
 # License: This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC-BY-NC-SA 4.0)
 
 from setuptools import setup
-import dtr
+import deeptexture
 
-DESCRIPTION = "histo_dtr: Deep Texture Representations for Cancer Histology Images"
-NAME = 'histo-dtr'
+DESCRIPTION = "deep_texture_histology: Deep Texture Representations for Cancer Histology Images"
+NAME = 'deep-texture-histology'
 AUTHOR = 'Daisuke Komura'
 AUTHOR_EMAIL = 'kdais-prm@m.u-tokyo.ac.jp'
 URL = 'https://github.com/dakomura/deep_texture_histology'
 LICENSE = 'CC-BY-NC-SA 4.0'
 DOWNLOAD_URL = 'https://github.com/dakomura/deep_texture_histology'
-VERSION = dtr.__version__
+VERSION = deeptexture.__version__
 PYTHON_REQUIRES = ">=3.6"
 
 INSTALL_REQUIRES = [
-    'tifffile >=2022.5.4',
     'numpy >=1.20.3',
-    'tripy >=1.0.0',
-    'pyclipper >=1.3.0',
-    'opencv-python >= 4.6.0',
-    'zarr >=2.11.3',
-    'imagecodecs >=2022.2.22',
-    'click >=8.1.3',
+    'tensorflow >=2.1.0',
+    'joblib >=0.13.2',
+    'Pillow >=8.0.1',
+    'nmslib >=2.0.6',
+    'matplotlib >= 3.5.0',
+    'scikit-learn >=1.1.0',
+    'seaborn >=0.10.1',
+    'pandas >=1.1.0',
+    
 ]
 
 PACKAGES = [
-    'histo_dtr'
+    'deeptexture'
 ]
 
 CLASSIFIERS = [
@@ -42,7 +44,6 @@ CLASSIFIERS = [
     'Topic :: Scientific/Engineering',
     'Topic :: Scientific/Engineering :: Visualization',
     'Topic :: Scientific/Engineering :: Artificial Intelligence',
-    'Topic :: Multimedia :: Graphics',
 ]
 
 with open('README.rst', 'r', encoding='utf-8') as fp:
