@@ -13,6 +13,7 @@
 import os
 import sys
 sys.path.insert(0, '/data/share/deep_texture/deep_texture_histology/deeptexture')
+sys.path.insert(0, '/data/share/deep_texture/deep_texture_histology')
 
 
 # -- Project information -----------------------------------------------------
