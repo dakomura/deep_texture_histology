@@ -1,7 +1,7 @@
 # Defining the exact version will make sure things don't break
 nmslib==2.0.6
 numpy==1.19.2
-tensorflow==2.6.0
+tensorflow
 joblib==1.0.0
 Pillow==8.0.1
 matplotlib==3.5.0
