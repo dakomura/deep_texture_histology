@@ -3,7 +3,7 @@ from typing import Any, List
 import nmslib
 import joblib
 import numpy as np
-import dtr
+from .dtr import *
 import matplotlib.pyplot as plt
 from PIL import Image
 plt.rcParams['font.size'] = 10 #font size
@@ -51,7 +51,7 @@ class CBIR:
         #                   'imgfile':imgfiles})
         imgfiles = df_attr[img_attr]
 
-        self.dtrs = dtr.get_dtr_multifiles(imgfiles, n_jobs = n_jobs)
+        self.dtrs = get_dtr_multifiles(imgfiles, n_jobs = n_jobs)
             
         #make index    
         params = {'M': 20, 'post': 0, 'efConstruction': 500}

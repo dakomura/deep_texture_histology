@@ -2,7 +2,7 @@
 deep_texture_histology : Tools for deep texture representation for histology images.
 ***************************************************************************************
 
-.. image:: https://github.com/dakomura/deep_texture_histology/blob/main/docs/_static/logo/dtr_logo.png
+.. image:: https://github.com/dakomura/deep_texture_histology/blob/main/docs/_static/logo/dtr_logo.jpg
 
 Overview
 ==============
