@@ -100,7 +100,8 @@ def plt_dtr_attr(X: np.ndarray,
                  save: bool = False, 
                  **kwargs
                  ) -> Any:
-    """_summary_
+    """Plot DTRs in two-dimensional space given or calculated by the specified dimensionality reduction method. 
+    User specified attributes are plotted at the position in the space.
 
     Args:
         X (np.ndarray): M-dimensional DTRs for N images (NxM array) or two-dimensional coordicates of DTRs for N images (Nx2 array). 
