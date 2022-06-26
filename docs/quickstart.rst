@@ -93,7 +93,8 @@ Plot DTR distribution
 Content-based image retrieval
 -----------------------------
 
-CBIR is.
+DTR enables quick and accurate retrieval of histologically similar images using CBIR module.
+You can create original database and save the files in the specified directory.
 
 
 1.  Create CBIR database.
@@ -129,6 +130,10 @@ CBIR is.
                                 'tissue',: attr)
         
         cbir_obj.create_db(df_attr, img_attr='imgfile', save=True)
+
+2.  Search similar histology images.
+
+    .. code-block:: python
 
         # search the most similar images (top two)
         qimgfile = "./5.jpg"
