@@ -12,7 +12,9 @@ Welcome to deep_texture_histology's documentation!
    :maxdepth: 4
    :caption: Contents:
 
+   installation
    deeptexture
+   authors
 
 
 Indices and tables
