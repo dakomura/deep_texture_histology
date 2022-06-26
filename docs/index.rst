@@ -15,6 +15,8 @@ Welcome to deep_texture_histology's documentation!
    installation
    quickstart
    deeptexture
+   license
+   citation
    authors
 
 
