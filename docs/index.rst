@@ -13,6 +13,7 @@ Welcome to deep_texture_histology's documentation!
    :caption: Contents:
 
    installation
+   quickstart
    deeptexture
    authors
 
