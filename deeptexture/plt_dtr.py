@@ -39,7 +39,7 @@ def plt_dtr_image(X: np.ndarray,
         text (Union[None, List[str]], optional): Show text if not None. Defaults to Union[None, List[str]]. Defaults to None.
 
     Returns:
-        np.ndarray: _description_
+        np.ndarray: Two-dimensional coordicates of DTRs for N images (Nx2 array) 
     """
     if len(files) != X.shape[0]:
         raise Exception("len(files) must be the number of dtrs.")
