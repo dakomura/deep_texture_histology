@@ -171,7 +171,7 @@ class DTR:
         """
         #only preprocess runs in parallel
         imgs = Parallel(n_jobs=n_jobs)([delayed(self._process_image)(imgfile, angle) for imgfile in img_path])
-        dtrs = np.empty((len(imgs), self.dim), astype=float)
+        dtrs = np.empty((len(imgs), self.dim), dtype=float)
         for i, img in enumerate(imgs):
             dtrs[i,:] = np.array(self.cbp([img])[0])
 

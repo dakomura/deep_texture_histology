@@ -1,8 +1,4 @@
 from typing import Any, List, Union
-from sklearn.decomposition import IncrementalPCA
-from sklearn.manifold import TSNE, Isomap
-from sklearn.manifold import LocallyLinearEmbedding as LLE
-from sklearn.manifold import SpectralEmbedding as SE
 from matplotlib import pyplot as plt
 from matplotlib.offsetbox import OffsetImage,AnnotationBbox
 
@@ -25,8 +21,8 @@ def plt_dtr_image(X: np.ndarray,
                   outfile: str = "", 
                   save: bool = False, 
                   axis: bool = False,
-                  text = Union[None, List[str]],
-                  **kwargs
+                  text:Union[None, List[str]] = None,
+                  **kwargs,
                   ) -> np.ndarray:
     """Plot DTRs in two-dimensional space given or calculated by the specified dimensionality reduction method. 
     Images are plotted at the position in the space.
@@ -40,14 +36,17 @@ def plt_dtr_image(X: np.ndarray,
         outfile (str, optional): Output image file. Defaults to "".
         save (bool, optional): Save the output image to outfile if True. Defaults to False.
         axis (bool, optional): Show axis if True. Defaults to False.
-        text (_type_, optional): Show text if not None. Defaults to Union[None, List[str]].
+        text (Union[None, List[str]], optional): Show text if not None. Defaults to Union[None, List[str]]. Defaults to None.
 
     Returns:
         np.ndarray: _description_
     """
+    if len(files) != X.shape[0]:
+        raise Exception("len(files) must be the number of dtrs.")
 
     if X.shape[1] == 2: # embedding
         X_emb = X
+        print ("Embedding is given instead of DTRs")
     else: # dtr
         if method is None:
             raise Exception("Please specify `method` when `X` is not embedded values")
@@ -59,6 +58,8 @@ def plt_dtr_image(X: np.ndarray,
     ax = fig.add_subplot(1,1,1)
 
     if text is not None:
+        if len(text) != len(files):
+            raise Exception("len(text) must be the same as len(files).")
         for i,t in enumerate(text):
             ax.text(X_emb[i,0], X_emb[i,1], t, size=10,
                 fontweight="bold")
@@ -98,6 +99,8 @@ def plt_dtr_attr(X: np.ndarray,
                  palette: str = 'colorblind',
                  dpi: int = 320, 
                  save: bool = False, 
+                 axis: bool = False,
+                 text: Union[None, List[str]] = None,
                  **kwargs
                  ) -> Any:
     """Plot DTRs in two-dimensional space given or calculated by the specified dimensionality reduction method. 
@@ -112,13 +115,18 @@ def plt_dtr_attr(X: np.ndarray,
         palette (str, optional): Color palette. Defaults to 'colorblind'.
         dpi (int, optional): Dots per inch (DPI) of output image. Defaults to 320.
         save (bool, optional): Save the output image to outfile if True. Defaults to False.
+        axis (bool, optional): Show axis if True. Defaults to False.
+        text (Union[None, List[str]], optional): Show text if not None. Defaults to Union[None, List[str]]. Defaults to None.
 
     Returns:
         Any: Pandas dataframe with 'attr', 'x1', and 'x2' columns.
     """
+    if len(attr) != X.shape[0]:
+        raise Exception("len(attributes) must be the number of dtrs.")
 
     if X.shape[1] == 2: # embedding
         X_emb = X
+        print ("Embedding is given instead of DTRs")
     else: # dtr
         if method is None:
             raise Exception("Please specify `method` when `X` is not embedded values")
@@ -134,11 +142,21 @@ def plt_dtr_attr(X: np.ndarray,
                 palette = palette,
                 s=s,
                 hue = 'attr')
+    if text is not None:
+        if len(text) != len(attr):
+            raise Exception("len(text) must be the same as len(attributes).")
+        for i,t in enumerate(text):
+            plt.text(X_emb[i,0], X_emb[i,1], t, size=10,
+                fontweight="bold")
 
     width1 = (np.max(X_emb[:,0]) - np.min(X_emb[:,0]))*0.15
     height1 = (np.max(X_emb[:,1]) - np.min(X_emb[:,1]))*0.15
     plt.xlim(np.min(X_emb[:,0])-width1, np.max(X_emb[:,0])+width1)
     plt.ylim(np.min(X_emb[:,1])-height1, np.max(X_emb[:,1])+height1)
+
+    if not axis:
+        plt.axis('off')
+
     if save:
         plt.savefig(outfile,dpi = dpi)
 
@@ -150,27 +168,45 @@ def _embed(X: np.ndarray,
           ) -> np.ndarray:
 
     if method == 'tsne':
+        from sklearn.manifold import TSNE
+        p = kwargs.get('p', 100)
+        print (f"perplexity {p} for TSNE plot.")
         return TSNE(n_components = 2,
-                    perplexity = kwargs['p'],
+                    perplexity = p,
                     n_iter = 1000,
                     random_state = 42).fit_transform(X)
     if method == 'pca':
-        pca = IncrementalPCA(n_components = max(kwargs['x1'], kwargs['x2'])+1,
+        from sklearn.decomposition import IncrementalPCA
+        x1 = kwargs.get("x1", 1)
+        x2 = kwargs.get("x2", 2)
+        if x1 <= 0 or x2 <= 0:
+            raise Exception("invalid dimensions for PCA")
+        print (f"PC{x1} and PC{x2} are used for PCA plot.")
+        pca = IncrementalPCA(n_components = max(x1, x2),
                     batch_size = 100,
                     whiten = True)
         pca.fit(X)
         X_emb = pca.transform(X)
         X_emb_new = np.empty((X_emb.shape[0], 2))
-        X_emb_new[:,0] = X_emb[:,kwargs['x1']]
-        X_emb_new[:,1] = X_emb[:,kwargs['x2']]
+        X_emb_new[:,0] = X_emb[:,x1-1]
+        X_emb_new[:,1] = X_emb[:,x2-1]
         return X_emb_new
     if method == 'umap':
         import umap
-        return umap.UMAP(**kwargs).fit_transform(X)
+        min_dist = kwargs.get('min_dist', 0.1)
+        n_neighbors = kwargs.get('n_neighbors', 5)
+        metric = kwargs.get('metric', "cosine")
+        print (f"min_dist: {min_dist}, n_neighbors: {n_neighbors}, and metric: {metric} are used for UMAP plot")
+        return umap.UMAP(min_dist = min_dist,
+                         n_neighbors = n_neighbors,
+                         metric = metric).fit_transform(X)
     if method == 'lle':
+        from sklearn.manifold import LocallyLinearEmbedding as LLE
         # LLE method = 'standard', 'ltsa', 'hessian', 'modified'
         return LLE(method='modified',**kwargs).fit_transform(X)
     if method == 'isomap':
+        from sklearn.manifold import Isomap
         return Isomap(**kwargs).fit_transform(X)
     if method == 'se':
+        from sklearn.manifold import SpectralEmbedding as SE
         return SE(**kwargs).fit_transform(X)

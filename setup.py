@@ -6,7 +6,7 @@ from setuptools import setup
 import deeptexture
 
 DESCRIPTION = "deep_texture_histology: Deep Texture Representations for Cancer Histology Images"
-NAME = 'deep-texture-histology'
+NAME = 'deeptexture'
 AUTHOR = 'Daisuke Komura'
 AUTHOR_EMAIL = 'kdais-prm@m.u-tokyo.ac.jp'
 URL = 'https://github.com/dakomura/deep_texture_histology'
