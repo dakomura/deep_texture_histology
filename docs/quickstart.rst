@@ -9,6 +9,7 @@ DTR calculation
 .. code-block:: python
 
     import deeptexture as dt
+    import glob
 
     # create DTR object
     dtr_obj = dt.DTR(arch='vgg', layer='block3_conv3', dim=1024)
@@ -127,7 +128,7 @@ You can create original database and save the files in the specified directory.
                 'normal',]
         df_attr = pd.DataFrame({'imgfile': imgfiles,
                                 'patient': patients,
-                                'tissue',: attr)
+                                'tissue': attr})
         
         cbir_obj.create_db(df_attr, img_attr='imgfile', save=True)
 
