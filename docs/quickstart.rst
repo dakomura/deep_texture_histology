@@ -36,11 +36,11 @@ DTR calculation
 
     # calculate DTRs for multiple images
     imgfiles = glob.glob("./*.jpg")
-    dtrs = dtr_obj.get_dtr_multiples(imgfiles)
+    dtrs = dtr_obj.get_dtr_multifiles(imgfiles)
 
     # calculate DTRs for multiple rotated images
     imgfiles = glob.glob("./*.jpg")
-    dtrs = dtr_obj.get_dtr_multiples(imgfiles, angle=90)
+    dtrs = dtr_obj.get_dtr_multifiles(imgfiles, angle=90)
 
 Plot DTR distribution
 ---------------------
@@ -57,7 +57,7 @@ Plot DTR distribution
                     '04.jpg',]
         text = ['01','02','03','04',]
 
-        dtrs = dtr_obj.get_dtr_multiples(imgfiles, angle=90)
+        dtrs = dtr_obj.get_dtr_multifiles(imgfiles, angle=90)
 
         #Principal component analysis is applied to DTRs and PC1 and PC2 is shown.
         X_emb = plt_dtr.plt_dtr_image(dtrs, imgfiles, method="pca", x1=1, x2=2, text=text)
@@ -81,7 +81,7 @@ Plot DTR distribution
                 'normal',]
         text = ['01','02','03','04',]
 
-        dtrs = dtr_obj.get_dtr_multiples(imgfiles, angle=90)
+        dtrs = dtr_obj.get_dtr_multifiles(imgfiles, angle=90)
 
         #Principal component analysis is applied to DTRs and PC1 and PC2 is shown.
         df = plt_dtr.plt_dtr_attr(dtrs, attr, method="pca", x1=1, x2=2, text=text)
