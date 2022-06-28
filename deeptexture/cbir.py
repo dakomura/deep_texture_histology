@@ -27,11 +27,11 @@ class CBIR:
         self.working_dir = working_dir
         self.indexfile = '{}/{}/nmslib_index.idx'.format(self.working_dir,
                                                             self.project)
+        os.makedirs(os.path.dirname(self.indexfile), exist_ok=True)
 
     def create_db(self,
                     df_attr: Any,
                     img_attr: str = "imgfile",
-                    n_jobs: int = 8,
                     save: bool = True,
                     ) -> None:
         """Create CBIR database.
@@ -39,7 +39,6 @@ class CBIR:
         Args:
             df_attr (Any): Pandas dataframe containing at least image files and case IDs.
             img_attr (str, optional): Column name of image files in df_attr. Defaults to "imgfile".
-            n_jobs (int, optional): The number of parallel jobs used for preprocessing. Defaults to 8.
             save (bool, optional): Saves database in the project direcotry if True. Defaults to True.
         """
 
@@ -51,7 +50,7 @@ class CBIR:
         #                   'imgfile':imgfiles})
         imgfiles = df_attr[img_attr]
 
-        self.dtrs = get_dtr_multifiles(imgfiles, n_jobs = n_jobs)
+        self.dtrs = self.dtr_obj.get_dtr_multifiles(imgfiles)
             
         #make index    
         params = {'M': 20, 'post': 0, 'efConstruction': 500}
@@ -87,6 +86,7 @@ class CBIR:
                qimgfile: str,
                img_attr: str = "imgfile",
                case_attr: str = "patient",
+               type_attr: str = "tissue",
                n: int = 50,
                ) -> None:
         """Search and show images similar to the query image using DTR
@@ -95,16 +95,16 @@ class CBIR:
             qimgfile (str): Query image file.
             img_attr (str, optional): Column name of image files in df_attr. Defaults to "imgfile".
             case_attr (str, optional): Column name of case ID in df_attr. Defaults to "patient".
+            type_attr (str, optional): Column name of additional attribute to show in df_attr. Defaults to "tissue".
             n (int, optional): The number of images shown. Defaults to 50.
         """
         
 
-        qdtr = self.dtr.get_dtr(qimgfile)
-        qdtr_rot = self.dtr.get_dtr(qimgfile, angle = 90)
+        qdtr = self.dtr_obj.get_dtr(qimgfile)
+        qdtr_rot = self.dtr_obj.get_dtr(qimgfile, angle = 90)
 
         ## search
-        k = 200 # the number of retrieved nearest neighbors
-        n = 50 # the number of results
+        k = min(self.df_attr.shape[0], n * 50) # the number of retrieved nearest neighbors
 
         results1, dists1 = self.index.knnQuery(qdtr, k=k)
         results2, dists2 = self.index.knnQuery(qdtr_rot, k=k)
@@ -115,7 +115,7 @@ class CBIR:
         dists = dists[s]
 
         patients = []
-        cancers = []
+        attrs = []
         dist_list = []
         num = []
         imgs = []
@@ -123,12 +123,12 @@ class CBIR:
             imgfile = self.df_attr[img_attr][res]
             data = self.df_attr.iloc[res,]
             patient = data[case_attr]
-            cancer = data.cancer
+            attr = data[type_attr]
             #mag = data.magnification
 
             if not patient in patients: #remove patient-level duplicates
                 patients.append(patient)
-                cancers.append(cancer)
+                attrs.append(attr)
                 num.append(res)
                 imgs.append(imgfile)
                 dist_list.append(dist)
@@ -138,7 +138,7 @@ class CBIR:
         ### plot results
 
 
-        labels = ["{}\n{}\n{}".format(cancer, patient, 1-d) for cancer,patient,d in zip(cancers, patients, dist_list)]
+        labels = ["{}\n{}\n{}".format(attr, patient, 1-d) for attr,patient,d in zip(attrs, patients, dist_list)]
         self._imgcats(imgs, labels=labels)
 
     def _imgcats(self, 
@@ -147,7 +147,7 @@ class CBIR:
                     nrows: int = 3, 
                     ) -> None:
 
-        ncols = np.ceil(len(infiles)/nrows)
+        ncols = int(np.ceil(len(infiles)/nrows))
         for i, infile in enumerate(infiles):
             plt.subplot(ncols, nrows, i+1)
             im = Image.open(infile)

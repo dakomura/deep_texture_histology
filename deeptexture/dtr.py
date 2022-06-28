@@ -1,5 +1,4 @@
 from typing import Any, List, Union
-from joblib import Parallel, delayed
 from PIL import Image
 import numpy as np
 import tensorflow as tf
@@ -98,19 +97,6 @@ class DTR:
 
         self.cbp = models.Model(conv_base.input,z4)
 
-    def _process_image(self, 
-                       img_path: str, 
-                       angle: Union[None, int]
-                       ) -> np.ndarray:
-
-        img = preprocessing.image.load_img(img_path)
-        x = preprocessing.image.img_to_array(img)
-        if angle is not None:
-            x = preprocessing.image.apply_affine_transform(x, theta = angle)
-        x = np.expand_dims(x, axis=0)
-        x = self.prep(x)
-        return (x)
-    
     def get_dtr(self, 
                 img: Any, 
                 angle: Union[None, int] = None
@@ -157,22 +143,16 @@ class DTR:
     def get_dtr_multifiles(self, 
                            img_path: List[str], 
                            angle: Union[None, int] = None, 
-                           n_jobs: int = 8
                            ) -> np.ndarray:
         """Calculates DTRs for multiple images.
 
         Args:
             img_path (List[str]): List of image files.
             angle (Union[None, int], optional): Rotation angle (0-360). Defaults to None.
-            n_jobs (int, optional): The number of parallel jobs used for preprocessing. Defaults to 8.
 
         Returns:
             np.ndarray: DTRs
         """
-        #only preprocess runs in parallel
-        imgs = Parallel(n_jobs=n_jobs)([delayed(self._process_image)(imgfile, angle) for imgfile in img_path])
-        dtrs = np.empty((len(imgs), self.dim), dtype=float)
-        for i, img in enumerate(imgs):
-            dtrs[i,:] = np.array(self.cbp([img])[0])
-
+        dtrs = np.vstack([self.get_dtr(imgfile) for imgfile in img_path])
+    
         return dtrs

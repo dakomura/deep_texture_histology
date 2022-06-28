@@ -25,10 +25,10 @@ copyright = '2022, D.Komura'
 author = 'D.Komura'
 
 # The short X.Y version
-version = 'v0.1.1'
+version = 'v0.1.2'
 
 # The full version, including alpha/beta/rc tags
-release = 'v0.1.1'
+release = 'v0.1.2'
 
 
 # -- General configuration ---------------------------------------------------
