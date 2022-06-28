@@ -9,6 +9,7 @@ DTR calculation
 .. code-block:: python
 
     import deeptexture as dt
+    import glob
 
     # create DTR object
     dtr_obj = dt.DTR(arch='vgg', layer='block3_conv3', dim=1024)
