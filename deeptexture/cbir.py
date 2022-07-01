@@ -32,6 +32,8 @@ class CBIR:
     def create_db(self,
                     df_attr: Any,
                     img_attr: str = "imgfile",
+                    case_attr: str = "patient",
+                    type_attr: str = "tissue",
                     save: bool = True,
                     ) -> None:
         """Create CBIR database.
@@ -39,15 +41,16 @@ class CBIR:
         Args:
             df_attr (Any): Pandas dataframe containing at least image files and case IDs.
             img_attr (str, optional): Column name of image files in df_attr. Defaults to "imgfile".
+            case_attr (str, optional): Column name of case ID in df_attr. Defaults to "patient".
+            type_attr (str, optional): Column name of additional attribute to show in df_attr. Defaults to "tissue".
             save (bool, optional): Saves database in the project direcotry if True. Defaults to True.
         """
 
         self.df_attr = df_attr
+        self.img_attr = img_attr
+        self.case_attr = case_attr
+        self.type_attr = type_attr
 
-        # create dataframe including attributes
-        #df = pd.DataFrame({'patient':patients,
-        #                   'cancer':cancers,
-        #                   'imgfile':imgfiles})
         imgfiles = df_attr[img_attr]
 
         self.dtrs = self.dtr_obj.get_dtr_multifiles(imgfiles)
@@ -66,6 +69,13 @@ class CBIR:
         """
         self.index.saveIndex(filename=self.indexfile)
 
+        joblib.dump({'img_attr':self.img_attr,
+                    'case_attr':self.case_attr,
+                    'type_attr':self.type_attr},
+                    '{}/{}/attr.pkl'.format(self.working_dir,
+                                            self.project,
+                    ))
+
         self.df_attr.to_pickle('{}/{}/df.gz'.format(self.working_dir,
                                                 self.project))
         np.save('{}/{}/feats.npy'.format(self.working_dir,
@@ -82,11 +92,42 @@ class CBIR:
         self.index = nmslib.init(method='hnsw', space='cosinesimil')
         self.index.loadIndex(filename = self.indexfile)
 
+        attr = joblib.load('{}/{}/attr.pkl'.format(self.working_dir,
+                                            self.project))
+        self.img_attr = attr['img_attr']
+        self.case_attr = attr['case_attr']
+        self.type_attr = attr['type_attr']
+
+        print (f"{self.project} loaded. img_attr:{self.img_attr}, case_attr:{self.case_attr}, type_attr{self.type_attr}")
+
+    def show_db(self,
+                n: int = 50,
+                cases: List[str] = None,
+                attrs: List[str] = None,
+                ):
+        """_summary_
+
+        Args:
+            n (int, optional): The number of images shown. Defaults to 50.
+            cases (List[str], optional): Cases shown. Defaults to None.
+            attrs (List[str], optional): Attributes shown. Defaults to None.
+        """
+        df_tmp = self.df_attr
+        if cases is not None:
+            df_tmp = df_tmp[df_tmp[self.case_attr].isin(cases)]
+        if attrs is not None:
+            df_tmp = df_tmp[df_tmp[self.type_attr].isin(attrs)]
+
+        nrow = df_tmp.shape[0]
+        df_tmp = df_tmp.sample(n=min(nrow, n))
+        labels = ["{}\n{}\n{}".format(os.path.basename(d[self.img_attr]), 
+                                      d[self.type_attr], 
+                                      d[self.case_attr]) for d in df_tmp.iterrows()]
+        self._imgcats(df_tmp[self.img_attr], labels=labels)
+            
+
     def search(self,
                qimgfile: str,
-               img_attr: str = "imgfile",
-               case_attr: str = "patient",
-               type_attr: str = "tissue",
                n: int = 50,
                show_query: bool = True,
                scale: Union[None, int] = None,
@@ -95,9 +136,6 @@ class CBIR:
 
         Args:
             qimgfile (str): Query image file.
-            img_attr (str, optional): Column name of image files in df_attr. Defaults to "imgfile".
-            case_attr (str, optional): Column name of case ID in df_attr. Defaults to "patient".
-            type_attr (str, optional): Column name of additional attribute to show in df_attr. Defaults to "tissue".
             show_query (bool, optional): Show query image. Defaults to True.
             n (int, optional): The number of images shown. Defaults to 50.
             scale (Union[None, int], optional): Query image is rescaled. Default to None.
@@ -124,10 +162,10 @@ class CBIR:
         num = []
         imgfiles = []
         for res, dist in zip(results, dists):
-            imgfile = self.df_attr[img_attr][res]
+            imgfile = self.df_attr[self.img_attr][res]
             data = self.df_attr.iloc[res,]
-            patient = data[case_attr]
-            attr = data[type_attr]
+            patient = data[self.case_attr]
+            attr = data[self.type_attr]
             #mag = data.magnification
 
             if not patient in patients: #remove patient-level duplicates
