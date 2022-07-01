@@ -119,7 +119,9 @@ class CBIR:
             df_tmp = df_tmp[df_tmp[self.type_attr].isin(attrs)]
 
         nrow = df_tmp.shape[0]
-        df_tmp = df_tmp.sample(n=min(nrow, n))
+        n = min(nrow, n)
+        print (f"plot {n} images")
+        df_tmp = df_tmp.sample(n=n)
         labels = ["{}\n{}\n{}".format(os.path.basename(d[self.img_attr]), 
                                       d[self.type_attr], 
                                       d[self.case_attr]) for d in df_tmp.iterrows()]
