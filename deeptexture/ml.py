@@ -23,6 +23,19 @@ class ML:
                      fold: int = 3,
                      pca: bool = False,
                      ) -> Any:
+        """Supervised learning model using pycaret
+
+        Args:
+            y (Union[list, np.ndarray]): Target variable.
+            cases (Union[list, np.ndarray]): Case IDs (used as group).
+            y_name (str, optional): Name of target variable. Defaults to 'target'.
+            model (str, optional): Supervised learning model. Defaults to 'lr'.
+            fold (int, optional): Number of folds in K-fold cross validation. Defaults to 3.
+            pca (bool, optional): Apply PCA for preprocessing. Defaults to False.
+
+        Returns:
+            Any: Tuned model.
+        """
 
         ndim = self.dtrs.shape[1]
         digit = len(str(ndim))
@@ -40,11 +53,11 @@ class ML:
                      pca = pca,
                      session_id = 123,
                      )
-        model = cl.create_model(model)
-        print(model)
+        ml_model = cl.create_model(model)
+        print(ml_model)
 
         print("model tuning")
-        tuned_model = cl.tune_model(model)
+        tuned_model = cl.tune_model(ml_model)
 
         pred = cl.predict_model(tuned_model,
                                 verbose = True,
