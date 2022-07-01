@@ -93,6 +93,7 @@ def plt_dtr_image(X: np.ndarray,
 
 def plt_dtr_attr(X: np.ndarray,
                  attr: List[str],
+                 cases: Union[None, List[str]] = None,
                  method: Union[None, str] = None, 
                  s: int = 10,
                  outfile: str = "", 
@@ -101,6 +102,7 @@ def plt_dtr_attr(X: np.ndarray,
                  save: bool = False, 
                  axis: bool = False,
                  text: Union[None, List[str]] = None,
+                 use_plotly: bool = False,
                  **kwargs
                  ) -> Any:
     """Plot DTRs in two-dimensional space given or calculated by the specified dimensionality reduction method. 
@@ -109,6 +111,7 @@ def plt_dtr_attr(X: np.ndarray,
     Args:
         X (np.ndarray): M-dimensional DTRs for N images (NxM array) or two-dimensional coordicates of DTRs for N images (Nx2 array). 
         attr (List[str]): List of attribute string.
+        cases (Union[None, str], optional): If not None, the case ID is shown. Activated only when use_plotly is True. Defaults to None.
         method (Union[None, str], optional): If not None, the specified dimensionality reduction method ("tsne", "pca", "umap", "lle", "isomap", "se") is used. Defaults to None.
         s (int, optional): Point size in the plot. Defaults to 10.
         outfile (str, optional): Output image file. Defaults to "".
@@ -116,6 +119,7 @@ def plt_dtr_attr(X: np.ndarray,
         dpi (int, optional): Dots per inch (DPI) of output image. Defaults to 320.
         save (bool, optional): Save the output image to outfile if True. Defaults to False.
         axis (bool, optional): Show axis if True. Defaults to False.
+        use_plotly (bool, optional): Use plotly. Defaults to False.
         text (Union[None, List[str]], optional): Show text if not None. Defaults to Union[None, List[str]]. Defaults to None.
 
     Returns:
@@ -137,28 +141,49 @@ def plt_dtr_attr(X: np.ndarray,
     df = pd.DataFrame({'attr': attr,
                         'x1': X_emb[:,0],
                         'x2': X_emb[:,1]})
-    plt.clf()
-    sns.scatterplot(x='x1', y='x2', data=df,
-                palette = palette,
-                s=s,
-                hue = 'attr')
-    if text is not None:
-        if len(text) != len(attr):
-            raise Exception("len(text) must be the same as len(attributes).")
-        for i,t in enumerate(text):
-            plt.text(X_emb[i,0], X_emb[i,1], t, size=10,
-                fontweight="bold")
 
     width1 = (np.max(X_emb[:,0]) - np.min(X_emb[:,0]))*0.15
     height1 = (np.max(X_emb[:,1]) - np.min(X_emb[:,1]))*0.15
-    plt.xlim(np.min(X_emb[:,0])-width1, np.max(X_emb[:,0])+width1)
-    plt.ylim(np.min(X_emb[:,1])-height1, np.max(X_emb[:,1])+height1)
 
-    if not axis:
-        plt.axis('off')
+    if use_plotly:
+        import plotly.express as px
+        fig = px.scatter(df, x='x1', y='x2',
+                        color='attr',
+                        size=s,
+                        hover_name='attr',
+                        hover_data = cases,
+                        text=text,
+                        range_x = [np.min(X_emb[:,0])-width1, np.max(X_emb[:,0])+width1],
+                        lange_y = [np.min(X_emb[:,1])-height1, np.max(X_emb[:,1])+height1],
+                        )
+        if not axis:
+            fig.update_xaxes(visible=False)
+            fig.update_yaxes(visible=False)
+        if save:
+            print ("dpi is ignored in plotly mode.")
+            fig.write_image(outfile)
 
-    if save:
-        plt.savefig(outfile,dpi = dpi)
+    else:
+        plt.clf()
+        sns.scatterplot(x='x1', y='x2', data=df,
+                    palette = palette,
+                    s=s,
+                    hue = 'attr')
+        if text is not None:
+            if len(text) != len(attr):
+                raise Exception("len(text) must be the same as len(attributes).")
+            for i,t in enumerate(text):
+                plt.text(X_emb[i,0], X_emb[i,1], t, size=10,
+                    fontweight="bold")
+
+        plt.xlim(np.min(X_emb[:,0])-width1, np.max(X_emb[:,0])+width1)
+        plt.ylim(np.min(X_emb[:,1])-height1, np.max(X_emb[:,1])+height1)
+
+        if not axis:
+            plt.axis('off')
+
+        if save:
+            plt.savefig(outfile,dpi = dpi)
 
     return df
 
