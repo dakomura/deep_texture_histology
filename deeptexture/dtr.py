@@ -99,13 +99,13 @@ class DTR:
 
     def get_dtr(self, 
                 img: Any, 
-                angle: Union[None, int] = None
+                angle: Union[None, int, List[int]] = None
                 ) -> np.ndarray:
         """Calculates DTR for an image object or file.
 
         Args:
             img (Any): Image file or image object (numpy array or PIL Image object)
-            angle (Union[None, int], optional): Rotation angle (0-360). Defaults to None.
+            angle (Union[None, int, List[int]], optional): Rotation angle(s) (0-360). If list is given, mean DTRs of the rotated image return. Defaults to None.
 
         Returns:
             np.ndarray: DTR for the image
@@ -119,7 +119,15 @@ class DTR:
             x = img
 
         if angle is not None:
-            x = preprocessing.image.apply_affine_transform(x, theta = angle)
+            if type(angle) == int:
+                x = preprocessing.image.apply_affine_transform(x, theta = angle)
+            elif type(angle) == list:
+                dtrs = np.vstack([self.get_dtr(img, theta) for theta in angle])
+                dtr_mean = np.mean(dtrs, axis=0)
+                return dtr_mean / np.linalg.norm(dtr_mean, ord=2) #L2-normalize
+            else:
+                raise Exception(f"invalid data type in angle {angle}")
+                
 
         x = np.expand_dims(x, axis=0)
         x = self.prep(x)
@@ -142,17 +150,17 @@ class DTR:
 
     def get_dtr_multifiles(self, 
                            img_path: List[str], 
-                           angle: Union[None, int] = None, 
+                           angle: Union[None, int, List[int]] = None, 
                            ) -> np.ndarray:
         """Calculates DTRs for multiple images.
 
         Args:
             img_path (List[str]): List of image files.
-            angle (Union[None, int], optional): Rotation angle (0-360). Defaults to None.
+            angle (Union[None, int, List[int]], optional): Rotation angle(s) (0-360). If list is given, mean DTRs of the rotated image return. Defaults to None.
 
         Returns:
             np.ndarray: DTRs
         """
-        dtrs = np.vstack([self.get_dtr(imgfile) for imgfile in img_path])
+        dtrs = np.vstack([self.get_dtr(imgfile, angle) for imgfile in img_path])
     
         return dtrs
