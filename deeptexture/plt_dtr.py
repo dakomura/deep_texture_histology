@@ -7,6 +7,7 @@ from PIL import Image
 import seaborn as sns
 import pandas as pd
 import numpy as np
+from sklearn.metrics import pairwise_distances as pair_dist
 
 np.random.seed(42)
 sns.set()
@@ -22,6 +23,8 @@ def plt_dtr_image(X: np.ndarray,
                   save: bool = False, 
                   axis: bool = False,
                   text:Union[None, List[str]] = None,
+                  show_medoid: bool = False,
+                  cases: Union[None, str] = None,
                   **kwargs,
                   ) -> np.ndarray:
     """Plot DTRs in two-dimensional space given or calculated by the specified dimensionality reduction method. 
@@ -37,10 +40,21 @@ def plt_dtr_image(X: np.ndarray,
         save (bool, optional): Save the output image to outfile if True. Defaults to False.
         axis (bool, optional): Show axis if True. Defaults to False.
         text (Union[None, List[str]], optional): Show text if not None. Defaults to Union[None, List[str]]. Defaults to None.
+        show_medoid (bool, optional): only show medoid. Active if DTRs are given as X. Defaults to False.
+        cases (Union[None, str], optional): Cases for each image. Valid only if show_medoid is True. Defaults to None.
 
     Returns:
         np.ndarray: Two-dimensional coordicates of DTRs for N images (Nx2 array) 
     """
+    def _get_ab(imgfile, scale, x, y):
+        img = Image.open(imgfile)
+        width = img.width
+        base_scale = 256/width
+
+        im = OffsetImage(img, scale*base_scale)
+        ab = AnnotationBbox(im, (x,y), xycoords='data', frameon=False)    
+        return ab
+
     if len(files) != X.shape[0]:
         raise Exception("len(files) must be the number of dtrs.")
 
@@ -49,10 +63,26 @@ def plt_dtr_image(X: np.ndarray,
         print ("Embedding is given instead of DTRs")
     else: # dtr
         if method is None:
-            raise Exception("Please specify `method` when `X` is not embedded values")
+            raise Exception("Please specify `method` when `X` is not embedded values.")
         if not method in ["tsne", "pca", "umap", "lle", "isomap", "se"]:
-            raise Exception("Please specify valid embedding method")
+            raise Exception("Please specify valid embedding method.")
         X_emb = _embed(X, method, **kwargs)
+
+    medoid_idxs = []
+    if show_medoid:
+        if cases is None or len(cases) != len(files):
+            raise Exception("Invalid values for cases.")
+        if X.shape[1] == 2:
+            raise Exception("Show medoid is available only when DTRs are given.")
+        #extract medoid for each case
+        u_cases = list(set(cases))
+        for case in u_cases:
+            case_idx = np.where(np.asarray(cases) == case)[0]
+            dmat = pair_dist(X[case_idx, :],
+                             metric='cosine')
+            medoid_idx = case_idx[np.argmin(dmat.sum(axis=0))]
+            medoid_idxs.append(medoid_idx)
+            
 
     fig = plt.figure(figsize = (14, 10.5))
     ax = fig.add_subplot(1,1,1)
@@ -64,13 +94,18 @@ def plt_dtr_image(X: np.ndarray,
             ax.text(X_emb[i,0], X_emb[i,1], t, size=10,
                 fontweight="bold")
 
-    for i, file in enumerate(files):
-        img = Image.open(file)
-        width = img.width
-        base_scale = 256/width
+    if show_medoid:
+        for i, file in enumerate(files):
+            if not i in medoid_idx:
+                ab = _get_ab(file, 0.005*scale, X_emb[i,0],X_emb[i,1])
+                ax.add_artist(ab)
+        for i, file in enumerate(files):
+            if i in medoid_idx:
+                ab = _get_ab(file, 0.05*scale, X_emb[i,0],X_emb[i,1])
+                ax.add_artist(ab)
 
-        im = OffsetImage(img, 0.05*scale*base_scale)
-        ab = AnnotationBbox(im, (X_emb[i,0],X_emb[i,1]), xycoords='data', frameon=False)
+    for i, file in enumerate(files):
+        ab = _get_ab(file, 0.05*scale, X_emb[i,0],X_emb[i,1])
         ax.add_artist(ab)
             
     width1 = (np.max(X_emb[:,0]) - np.min(X_emb[:,0]))*0.1
@@ -103,6 +138,7 @@ def plt_dtr_attr(X: np.ndarray,
                  axis: bool = False,
                  text: Union[None, List[str]] = None,
                  use_plotly: bool = False,
+                 show_medoid: bool = False,
                  **kwargs
                  ) -> Any:
     """Plot DTRs in two-dimensional space given or calculated by the specified dimensionality reduction method. 
@@ -111,7 +147,7 @@ def plt_dtr_attr(X: np.ndarray,
     Args:
         X (np.ndarray): M-dimensional DTRs for N images (NxM array) or two-dimensional coordicates of DTRs for N images (Nx2 array). 
         attr (List[str]): List of attribute string.
-        cases (Union[None, str], optional): If not None, the case ID is shown. Activated only when use_plotly is True. Defaults to None.
+        cases (Union[None, str], optional): If not None, the case ID is shown or used for medoid calculation. Activated only when use_plotly is True or show_medoid is True. Defaults to None.
         method (Union[None, str], optional): If not None, the specified dimensionality reduction method ("tsne", "pca", "umap", "lle", "isomap", "se") is used. Defaults to None.
         s (int, optional): Point size in the plot. Defaults to 10.
         outfile (str, optional): Output image file. Defaults to "".
@@ -121,6 +157,7 @@ def plt_dtr_attr(X: np.ndarray,
         axis (bool, optional): Show axis if True. Defaults to False.
         use_plotly (bool, optional): Use plotly. Defaults to False.
         text (Union[None, List[str]], optional): Show text if not None. Defaults to Union[None, List[str]]. Defaults to None.
+        show_medoid (bool, optional): only show medoid. Active if DTRs are given as X. Defaults to False.
 
     Returns:
         Any: Pandas dataframe with 'attr', 'x1', and 'x2' columns.
@@ -138,9 +175,30 @@ def plt_dtr_attr(X: np.ndarray,
             raise Exception("Please specify valid embedding method")
         X_emb = _embed(X, method, **kwargs)
 
+
+    if show_medoid:
+        s_list = np.ones((len(attr))) * 0.1 * s
+        if cases is None or len(cases) != len(files):
+            raise Exception("Invalid values for cases.")
+        if X.shape[1] == 2:
+            raise Exception("Show medoid is available only when DTRs are given.")
+        #extract medoid for each case
+        u_cases = list(set(cases))
+        medoid_idxs = []
+        for case in u_cases:
+            case_idx = np.where(np.asarray(cases) == case)[0]
+            dmat = pair_dist(X[case_idx, :], metric='cosine')
+            medoid_idx = case_idx[np.argmin(dmat.sum(axis=0))]
+            s_list[medoid_idx] = s
+            medoid_idxs.append(medoid_idx)
+    else:
+        s_list = np.ones((len(attr))) * s
+    
+
     df = pd.DataFrame({'attr': attr,
                         'x1': X_emb[:,0],
-                        'x2': X_emb[:,1]})
+                        'x2': X_emb[:,1]},
+                        'size': s_list)
 
     width1 = (np.max(X_emb[:,0]) - np.min(X_emb[:,0]))*0.15
     height1 = (np.max(X_emb[:,1]) - np.min(X_emb[:,1]))*0.15
@@ -149,7 +207,7 @@ def plt_dtr_attr(X: np.ndarray,
         import plotly.express as px
         fig = px.scatter(df, x='x1', y='x2',
                         color='attr',
-                        size=s,
+                        size='size',
                         hover_name='attr',
                         hover_data = cases,
                         text=text,
@@ -167,7 +225,7 @@ def plt_dtr_attr(X: np.ndarray,
         plt.clf()
         sns.scatterplot(x='x1', y='x2', data=df,
                     palette = palette,
-                    s=s,
+                    s='size',
                     hue = 'attr')
         if text is not None:
             if len(text) != len(attr):
