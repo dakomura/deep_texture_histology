@@ -195,10 +195,12 @@ def plt_dtr_attr(X: np.ndarray,
         s_list = np.ones((len(attr))) * s
     
 
+    is_medoid = [idx in medoid_idxs for idx in range(len(attr))]
     df = pd.DataFrame({'attr': attr,
                         'x1': X_emb[:,0],
-                        'x2': X_emb[:,1]},
-                        'size': s_list)
+                        'x2': X_emb[:,1],
+                        'size': s_list,
+                        'medoid':is_medoid})
 
     width1 = (np.max(X_emb[:,0]) - np.min(X_emb[:,0]))*0.15
     height1 = (np.max(X_emb[:,1]) - np.min(X_emb[:,1]))*0.15
