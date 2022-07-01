@@ -88,6 +88,7 @@ class CBIR:
                case_attr: str = "patient",
                type_attr: str = "tissue",
                n: int = 50,
+               show_query: bool = True,
                scale: Union[None, int] = None,
                ) -> None:
         """Search and show images similar to the query image using DTR
@@ -97,6 +98,7 @@ class CBIR:
             img_attr (str, optional): Column name of image files in df_attr. Defaults to "imgfile".
             case_attr (str, optional): Column name of case ID in df_attr. Defaults to "patient".
             type_attr (str, optional): Column name of additional attribute to show in df_attr. Defaults to "tissue".
+            show_query (bool, optional): Show query image. Defaults to True.
             n (int, optional): The number of images shown. Defaults to 50.
             scale (Union[None, int], optional): Query image is rescaled. Default to None.
         """
@@ -120,7 +122,7 @@ class CBIR:
         attrs = []
         dist_list = []
         num = []
-        imgs = []
+        imgfiles = []
         for res, dist in zip(results, dists):
             imgfile = self.df_attr[img_attr][res]
             data = self.df_attr.iloc[res,]
@@ -132,7 +134,7 @@ class CBIR:
                 patients.append(patient)
                 attrs.append(attr)
                 num.append(res)
-                imgs.append(imgfile)
+                imgfiles.append(imgfile)
                 dist_list.append(dist)
             if len(num) == n:
                 break
@@ -141,7 +143,10 @@ class CBIR:
 
 
         labels = ["{}\n{}\n{}".format(attr, patient, 1-d) for attr,patient,d in zip(attrs, patients, dist_list)]
-        self._imgcats(imgs, labels=labels)
+        if show_query:
+            self._imgcats([qimgfile, *imgfiles], labels=["query", *labels])
+        else:
+            self._imgcats(imgfiles, labels=labels)
 
     def _imgcats(self, 
                     infiles: List[str], 
