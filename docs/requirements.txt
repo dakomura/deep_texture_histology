@@ -1,11 +1,11 @@
 # Defining the exact version will make sure things don't break
-nmslib==2.0.6
+nmslib
 numpy
 tensorflow
-joblib==1.0.0
-Pillow==8.0.1
-matplotlib==3.5.0
-scikit-learn==1.1.0
-seaborn==0.10.1
-pandas==1.1.0
+joblib
+Pillow
+matplotlib
+scikit-learn
+seaborn
+pandas
 deeptexture
