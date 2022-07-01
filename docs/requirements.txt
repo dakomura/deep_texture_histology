@@ -8,4 +8,6 @@ matplotlib
 scikit-learn
 seaborn
 pandas
+opencv-python
+pycaret
 deeptexture
