@@ -88,6 +88,7 @@ class CBIR:
                case_attr: str = "patient",
                type_attr: str = "tissue",
                n: int = 50,
+               scale: Union[None, int] = None,
                ) -> None:
         """Search and show images similar to the query image using DTR
 
@@ -97,11 +98,12 @@ class CBIR:
             case_attr (str, optional): Column name of case ID in df_attr. Defaults to "patient".
             type_attr (str, optional): Column name of additional attribute to show in df_attr. Defaults to "tissue".
             n (int, optional): The number of images shown. Defaults to 50.
+            scale (Union[None, int], optional): Query image is rescaled. Default to None.
         """
         
 
-        qdtr = self.dtr_obj.get_dtr(qimgfile)
-        qdtr_rot = self.dtr_obj.get_dtr(qimgfile, angle = 90)
+        qdtr = self.dtr_obj.get_dtr(qimgfile, scale=scale)
+        qdtr_rot = self.dtr_obj.get_dtr(qimgfile, angle = 90, scale=scale)
 
         ## search
         k = min(self.df_attr.shape[0], n * 50) # the number of retrieved nearest neighbors

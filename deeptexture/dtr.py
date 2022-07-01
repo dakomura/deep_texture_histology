@@ -1,6 +1,7 @@
 from typing import Any, List, Union
 from PIL import Image
 import numpy as np
+import cv2
 import tensorflow as tf
 from tensorflow.keras import models, preprocessing
 from tensorflow.keras.applications import resnet50, vgg16, mobilenet_v2, inception_v3, nasnet, densenet, inception_resnet_v2
@@ -99,13 +100,17 @@ class DTR:
 
     def get_dtr(self, 
                 img: Any, 
-                angle: Union[None, int, List[int]] = None
+                angle: Union[None, int, List[int]] = None,
+                size: Union[None, int] = None,
+                scale: Union[None, float] = None,
                 ) -> np.ndarray:
         """Calculates DTR for an image object or file.
 
         Args:
             img (Any): Image file or image object (numpy array or PIL Image object)
             angle (Union[None, int, List[int]], optional): Rotation angle(s) (0-360). If list is given, mean DTRs of the rotated image return. Defaults to None.
+            size (Union[None, int], optional): Image is resized to the given size. Default to None.
+            scale (Union[None, int], optional): Image is rescaled. Active only size is not specified. Default to None.
 
         Returns:
             np.ndarray: DTR for the image
@@ -117,6 +122,12 @@ class DTR:
             x = np.array(img)
         else:
             x = img
+
+        if size is not None:
+            x = cv2.resize(x, dsize=[size, size])
+        elif scale is not None:
+            x = cv2.resize(x, fx=scale, fy=scale)
+
 
         if angle is not None:
             if type(angle) == int:
@@ -151,16 +162,19 @@ class DTR:
     def get_dtr_multifiles(self, 
                            img_path: List[str], 
                            angle: Union[None, int, List[int]] = None, 
+                           size: Union[None, int] = None,
                            ) -> np.ndarray:
         """Calculates DTRs for multiple images.
 
         Args:
             img_path (List[str]): List of image files.
             angle (Union[None, int, List[int]], optional): Rotation angle(s) (0-360). If list is given, mean DTRs of the rotated image return. Defaults to None.
+            size (Union[None, int], optional): Image is resized to the given size. Default to None.
+            scale (Union[None, int], optional): Image is rescaled. Active only size is not specified. Default to None.
 
         Returns:
             np.ndarray: DTRs
         """
-        dtrs = np.vstack([self.get_dtr(imgfile, angle) for imgfile in img_path])
+        dtrs = np.vstack([self.get_dtr(imgfile, angle=angle, size=size, scale=scale) for imgfile in img_path])
     
         return dtrs
