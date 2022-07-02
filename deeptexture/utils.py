@@ -19,7 +19,7 @@ def get_medoid(dtrs: np.ndarray,
     u_cases = np.unique(cases)
     for case in u_cases:
         case_idx = np.where(np.asarray(cases) == case)[0]
-        dmat = pair_dist(X[case_idx, :],
+        dmat = pair_dist(dtrs[case_idx, :],
                             metric='cosine')
         medoid_idx = case_idx[np.argmin(dmat.sum(axis=0))]
         medoid_dict[case] = medoid_idx
