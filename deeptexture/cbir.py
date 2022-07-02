@@ -133,7 +133,7 @@ class CBIR:
                n: int = 50,
                show_query: bool = True,
                scale: Union[None, int] = None,
-               ) -> None:
+               ) -> Tuple[np.ndarray, List[str]]:
         """Search and show images similar to the query image using DTR
 
         Args:
@@ -141,6 +141,8 @@ class CBIR:
             show_query (bool, optional): Show query image. Defaults to True.
             n (int, optional): The number of images shown. Defaults to 50.
             scale (Union[None, int], optional): Query image is rescaled. Default to None.
+        Returns:
+            Tuple[np.ndarray, List[str]]: Retrieved image file and the corresponding labels.
         """
         
 
@@ -187,6 +189,8 @@ class CBIR:
             self._imgcats([qimgfile, *imgfiles], labels=["query", *labels])
         else:
             self._imgcats(imgfiles, labels=labels)
+
+        return imgfiles, labels
 
     def _imgcats(self, 
                     infiles: List[str], 
