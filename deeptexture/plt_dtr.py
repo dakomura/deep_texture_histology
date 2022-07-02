@@ -133,7 +133,7 @@ def plt_dtr_attr(X: np.ndarray,
                  use_plotly: bool = False,
                  show_medoid: bool = False,
                  **kwargs
-                 ) -> Any:
+                 ) -> pd.DataFrame:
     """Plot DTRs in two-dimensional space given or calculated by the specified dimensionality reduction method. 
     User specified attributes are plotted at the position in the space.
 
@@ -153,7 +153,7 @@ def plt_dtr_attr(X: np.ndarray,
         show_medoid (bool, optional): only show medoid. Active if DTRs are given as X. Defaults to False.
 
     Returns:
-        Any: Pandas dataframe with 'attr', 'x1', and 'x2' columns.
+        pd.DataFrame: Dataframe with 'attr', 'x1', and 'x2' columns.
     """
     if len(attr) != X.shape[0]:
         raise Exception("len(attributes) must be the number of dtrs.")

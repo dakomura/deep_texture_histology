@@ -1,11 +1,13 @@
+from functools import reduce
 import os
 from typing import Any, List
 import nmslib
 import joblib
 import numpy as np
-from .dtr import *
 import matplotlib.pyplot as plt
+import pandas as pd
 from PIL import Image
+from .dtr import *
 plt.rcParams['font.size'] = 10 #font size
 plt.rcParams['figure.figsize'] = 20,70 #figure size
 
@@ -105,7 +107,7 @@ class CBIR:
                 cases: List[str] = None,
                 attrs: List[str] = None,
                 ):
-        """_summary_
+        """Show database images.
 
         Args:
             n (int, optional): The number of images shown. Defaults to 50.
@@ -132,17 +134,19 @@ class CBIR:
                qimgfile: str,
                n: int = 50,
                show_query: bool = True,
+               show: bool = True,
                scale: Union[None, int] = None,
-               ) -> Tuple[np.ndarray, List[str]]:
+               ) -> Tuple[np.ndarray, pd.DataFrame]:
         """Search and show images similar to the query image using DTR
 
         Args:
             qimgfile (str): Query image file.
             show_query (bool, optional): Show query image. Defaults to True.
-            n (int, optional): The number of images shown. Defaults to 50.
+            show (bool, optional): Show retrieved images. Defaults to True.
+            n (int, optional): The number of retrieved images. Defaults to 50.
             scale (Union[None, int], optional): Query image is rescaled. Default to None.
         Returns:
-            Tuple[np.ndarray, List[str]]: Retrieved image file and the corresponding labels.
+            Tuple[np.ndarray, pd.DataFrame]: Retrieved image file and the corresponding info(case, similarity, and attribute).
         """
         
 
@@ -151,18 +155,12 @@ class CBIR:
 
         ## search
         k = min(self.df_attr.shape[0], n * 50) # the number of retrieved nearest neighbors
-
-        results1, dists1 = self.index.knnQuery(qdtr, k=k)
-        results2, dists2 = self.index.knnQuery(qdtr_rot, k=k)
-        results = np.concatenate([results1, results2])
-        dists = np.concatenate([dists1, dists2])
-        s = np.argsort(dists)
-        results = results[s]
-        dists = dists[s]
+        
+        results, dists = self._nearest_neighbor(qdtr, qdtr_rot, k)
 
         patients = []
         attrs = []
-        dist_list = []
+        sims = []
         num = []
         imgfiles = []
         for res, dist in zip(results, dists):
@@ -177,20 +175,122 @@ class CBIR:
                 attrs.append(attr)
                 num.append(res)
                 imgfiles.append(imgfile)
-                dist_list.append(dist)
+                sims.append(1.0 - dist)
             if len(num) == n:
                 break
 
         ### plot results
 
 
-        labels = ["{}\n{}\n{}".format(attr, patient, 1-d) for attr,patient,d in zip(attrs, patients, dist_list)]
-        if show_query:
-            self._imgcats([qimgfile, *imgfiles], labels=["query", *labels])
-        else:
-            self._imgcats(imgfiles, labels=labels)
+        labels = ["{}\n{}\n{}".format(attr, patient, s) for attr,patient,d in zip(attrs, patients, sims)]
+        if show:
+            if show_query:
+                self._imgcats([qimgfile, *imgfiles], labels=["query", *labels])
+            else:
+                self._imgcats(imgfiles, labels=labels)
 
-        return imgfiles, labels
+        return imgfiles, pd.DataFrame({'attr':attrs, 'case':patients, 'similarity':sims})
+
+    def _nearest_neighbor(self,
+                          qdtr: np.ndarray,
+                          qdtr_rot: np.ndarray,
+                          k: int,
+                          ) -> Tuple[np.ndarray, np.ndarray]:
+
+        results1, dists1 = self.index.knnQuery(qdtr, k=k)
+        results2, dists2 = self.index.knnQuery(qdtr_rot, k=k)
+        results = np.concatenate([results1, results2])
+        dists = np.concatenate([dists1, dists2])
+        s = np.argsort(dists)
+        results = results[s]
+        dists = dists[s]
+
+        return results, dists
+
+    def search_multi(self,
+                    qimgfiles: List[str],
+                    strategy: str = 'max',
+                    n: int = 50,
+                    show_query: bool = True,
+                    show: bool = True,
+                    scale: Union[None, int] = None,
+                    ) -> pd.DataFrame:
+        """Search and show images similar to the query image using DTR
+
+        Args:
+            qimgfiles (List[str]): Query image files.
+            strategy (str, optional): Search strategy. In 'max', the similarity for the case is cacluated based on the maximum similarity among queries. In 'mean', the similarity for the case is cacluated based on the average similarity among queries. 
+            show_query (bool, optional): Show query images. Defaults to True.
+            show (bool, optional): Show retrieved images. Defaults to True.
+            n (int, optional): The number of retrieved images. Defaults to 50.
+            scale (Union[None, int], optional): Query images are rescaled. Default to None.
+        Returns:
+            pd.DataFrame : Results
+        """
+        
+        if not strategy in ['max', 'mean']:
+            raise Exception(f'invalid strategy: {strategy}')
+
+
+        df_each = []
+        for i, qimgfile in enumerate(qimgfiles):
+            qdtr = self.dtr_obj.get_dtr(qimgfile, scale=scale)
+            qdtr_rot = self.dtr_obj.get_dtr(qimgfile, angle = 90, scale=scale)
+
+            ## search
+            k = min(self.df_attr.shape[0], n * 50) # the number of retrieved nearest neighbors
+
+            results, dists = self._nearest_neighbor(qdtr, qdtr_rot, k)
+
+            patients = []
+            sims = []
+            num = []
+            imgfiles = []
+            for res, dist in zip(results, dists):
+                imgfile = self.df_attr[self.img_attr][res]
+                data = self.df_attr.iloc[res,]
+                patient = data[self.case_attr]
+
+                if not patient in patients: #remove patient-level duplicates
+                    patients.append(patient)
+                    num.append(res)
+                    imgfiles.append(imgfile)
+                    sims.append(1.0 - dist)
+            df_each.append(pd.DataFrame({f'patient':patients, f'num_{i}':num, 
+                                         f'sim_{i}':sims, f'imgfile_{i}':imgfiles}))
+        df_merged = reduce(lambda left, right: pd.merge(left, right, on=['patient'], how='outer'), df_each)
+        df_merged = df_merged.fillna(0)
+        
+        df_merged['agg_sim'] = df_merged.filter(like='sim_').agg(strategy, axis=1)
+        df_merged = df_merged.sort_values('agg_sim', ascending=False)
+        df_merged = df_merged.iloc[:min(n, df_merged.shape[0]),:]
+
+        qn = len(qimgfiles)
+      
+        if show:
+            ncols = qn
+            nrows = df_merged.shape[0]
+            if show_query:
+                nrows += 1
+                offset = qn + 1
+                for j, qimgfile in enumerate(qimgfiles):
+                    plt.subplot(ncols, nrows, j + 1) 
+                    im_list = np.asarray(Image.open(qimgfile))
+                    plt.imshow(im_list)
+                    plt.axis('off')
+            else:
+                offset = 1
+                
+            for i, d in enumerate(df_merged.iterrows()):
+                for j in range(qn):
+                    plt.subplot(ncols, nrows, j + i * qn + offset)
+                    imgfile = d[f'imgfiles_{j}']
+                    if os.path.exists(imgfile):
+                        im_list = np.asarray(Image.open(imgfile)) 
+                        plt.imshow(im_list)
+                        plt.axis('off')
+            
+        return df_merged
 
     def _imgcats(self, 
                     infiles: List[str], 
