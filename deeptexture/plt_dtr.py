@@ -3,11 +3,11 @@ from matplotlib import pyplot as plt
 from matplotlib.offsetbox import OffsetImage,AnnotationBbox
 
 from PIL import Image
-
 import seaborn as sns
 import pandas as pd
 import numpy as np
-from sklearn.metrics import pairwise_distances as pair_dist
+
+from .utils import *
 
 np.random.seed(42)
 sns.set()
@@ -68,20 +68,13 @@ def plt_dtr_image(X: np.ndarray,
             raise Exception("Please specify valid embedding method.")
         X_emb = _embed(X, method, **kwargs)
 
-    medoid_idxs = []
     if show_medoid:
         if cases is None or len(cases) != len(files):
             raise Exception("Invalid values for cases.")
         if X.shape[1] == 2:
             raise Exception("Show medoid is available only when DTRs are given.")
         #extract medoid for each case
-        u_cases = list(set(cases))
-        for case in u_cases:
-            case_idx = np.where(np.asarray(cases) == case)[0]
-            dmat = pair_dist(X[case_idx, :],
-                             metric='cosine')
-            medoid_idx = case_idx[np.argmin(dmat.sum(axis=0))]
-            medoid_idxs.append(medoid_idx)
+        medoid_dict = get_medoid(X, cases)
             
 
     fig = plt.figure(figsize = (14, 10.5))
@@ -96,11 +89,11 @@ def plt_dtr_image(X: np.ndarray,
 
     if show_medoid:
         for i, file in enumerate(files):
-            if not i in medoid_idx:
+            if not i in medoid_dict.values():
                 ab = _get_ab(file, 0.005*scale, X_emb[i,0],X_emb[i,1])
                 ax.add_artist(ab)
         for i, file in enumerate(files):
-            if i in medoid_idx:
+            if i in medoid_dict.values():
                 ab = _get_ab(file, 0.05*scale, X_emb[i,0],X_emb[i,1])
                 ax.add_artist(ab)
 
@@ -184,18 +177,12 @@ def plt_dtr_attr(X: np.ndarray,
             raise Exception("Show medoid is available only when DTRs are given.")
         #extract medoid for each case
         u_cases = list(set(cases))
-        medoid_idxs = []
-        for case in u_cases:
-            case_idx = np.where(np.asarray(cases) == case)[0]
-            dmat = pair_dist(X[case_idx, :], metric='cosine')
-            medoid_idx = case_idx[np.argmin(dmat.sum(axis=0))]
-            s_list[medoid_idx] = s
-            medoid_idxs.append(medoid_idx)
+        medoid_dict = get_medoid(X, cases)
     else:
         s_list = np.ones((len(attr))) * s
     
 
-    is_medoid = [idx in medoid_idxs for idx in range(len(attr))]
+    is_medoid = [idx in medoid_dict.values() for idx in range(len(attr))]
     df = pd.DataFrame({'attr': attr,
                         'x1': X_emb[:,0],
                         'x2': X_emb[:,1],

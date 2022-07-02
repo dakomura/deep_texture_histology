@@ -1,10 +1,12 @@
-from typing import Any, List, Union
+from typing import Any, List, Tuple, Union
 from PIL import Image
 import numpy as np
 import cv2
 import tensorflow as tf
 from tensorflow.keras import models, preprocessing
 from tensorflow.keras.applications import resnet50, vgg16, mobilenet_v2, inception_v3, nasnet, densenet, inception_resnet_v2
+
+from .utils import *
 
 #efficientnet is optional
 import importlib
@@ -64,7 +66,6 @@ class DTR:
 
 
     def _create_model(self) -> None:
-
         conv_base = self.archs_dict[self.arch](
             weights = "imagenet",
             include_top = None,
@@ -160,14 +161,14 @@ class DTR:
         return similarity
 
     def get_dtr_multifiles(self, 
-                           img_path: List[str], 
+                           imgfiles: List[str], 
                            angle: Union[None, int, List[int]] = None, 
                            size: Union[None, int] = None,
                            ) -> np.ndarray:
         """Calculates DTRs for multiple images.
 
         Args:
-            img_path (List[str]): List of image files.
+            imgfiles (List[str]): List of image files.
             angle (Union[None, int, List[int]], optional): Rotation angle(s) (0-360). If list is given, mean DTRs of the rotated image return. Defaults to None.
             size (Union[None, int], optional): Image is resized to the given size. Default to None.
             scale (Union[None, int], optional): Image is rescaled. Active only size is not specified. Default to None.
@@ -175,6 +176,34 @@ class DTR:
         Returns:
             np.ndarray: DTRs
         """
-        dtrs = np.vstack([self.get_dtr(imgfile, angle=angle, size=size, scale=scale) for imgfile in img_path])
+        dtrs = np.vstack([self.get_dtr(imgfile, angle=angle, size=size, scale=scale) for imgfile in imgfiles])
     
         return dtrs
+    
+    def get_mean_dtrs(self,
+                      dtrs: np.ndarray,
+                      imgfiles: List[str],
+                      cases: List[str],
+                      ) -> Tuple[np.ndarray, List[str], List[str]]:
+        """Calculate mean dtrs.
+
+        Args:
+            dtrs (np.ndarray): M-dimensional DTRs for N images (NxM array).
+            imgfiles (List[str]): List of full image file path for N image.
+            cases (List[str]): List of case IDs for N images.
+
+        Returns:
+            Tuple[np.ndarray, List[str], List[str]]: mean DTRs, 
+            List of image file path of the representative images (medoid for each case), and case IDs.
+        """
+        u_cases = np.sort(np.unique(cases))
+        dtrs_mean = np.vstack([np.mean(dtrs[cases==case, :], axis=0) for case in u_cases])
+        dtrs_mean = dtrs_mean / np.linalg.norm(dtrs_mean, ord=2) #L2-normalize
+
+        medoid_dict = get_medoid(dtrs, cases)
+
+        imgfiles_mean=[medoid_dict[case] for case in u_cases]
+        
+        return dtrs_mean, imgfiles_mean, list(u_cases)
+        
+        
