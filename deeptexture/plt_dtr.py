@@ -180,6 +180,7 @@ def plt_dtr_attr(X: np.ndarray,
         medoid_dict = get_medoid(X, cases)
     else:
         s_list = np.ones((len(attr))) * s
+        medoid_dict = {}
     
 
     is_medoid = [idx in medoid_dict.values() for idx in range(len(attr))]
