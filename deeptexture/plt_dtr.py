@@ -215,7 +215,7 @@ def plt_dtr_attr(X: np.ndarray,
         plt.clf()
         sns.scatterplot(x='x1', y='x2', data=df,
                     palette = palette,
-                    s='size',
+                    size='size',
                     hue = 'attr')
         if text is not None:
             if len(text) != len(attr):
