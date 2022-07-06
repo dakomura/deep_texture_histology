@@ -202,7 +202,7 @@ def plt_dtr_attr(X: np.ndarray,
                         hover_data = cases,
                         text=text,
                         range_x = [np.min(X_emb[:,0])-width1, np.max(X_emb[:,0])+width1],
-                        lange_y = [np.min(X_emb[:,1])-height1, np.max(X_emb[:,1])+height1],
+                        range_y = [np.min(X_emb[:,1])-height1, np.max(X_emb[:,1])+height1],
                         )
         if not axis:
             fig.update_xaxes(visible=False)
