@@ -179,11 +179,11 @@ def plt_dtr_attr(X: np.ndarray,
         u_cases = list(set(cases))
         medoid_dict = get_medoid(X, cases)
     else:
-        s_list = np.ones((len(attr))) * s
         medoid_dict = {}
     
 
     is_medoid = [idx in medoid_dict.values() for idx in range(len(attr))]
+    s_list = [s * 4 if idx in medoid_dict.values() else s  for idx in range(len(attr))]
     df = pd.DataFrame({'attr': attr,
                         'x1': X_emb[:,0],
                         'x2': X_emb[:,1],
