@@ -45,6 +45,7 @@ class ML:
                           )
         df[y_name] = y
 
+        """
         outstring = "s = cl.setup(df," + \
             "            target = y_name," + \
             "            fold_strategy = 'groupkfold'," + \
@@ -59,4 +60,5 @@ class ML:
             "                        verbose = True," + \
             "                        )"
         print(outstring)
-        return tuned_model
+        """
+        return df #tuned_model
