@@ -45,20 +45,4 @@ class ML:
                           )
         df[y_name] = y
 
-        """
-        outstring = "s = cl.setup(df," + \
-            "            target = y_name," + \
-            "            fold_strategy = 'groupkfold'," + \
-            "            fold_groups = cases," + \
-            "            fold = fold," + \
-            "            pca = pca," + \
-            "            session_id = 123," + \
-            "            )" + \
-            "ml_model = cl.create_model(model)" + \
-            "tuned_model = cl.tune_model(ml_model)" + \
-            "pred = cl.predict_model(tuned_model," + \
-            "                        verbose = True," + \
-            "                        )"
-        print(outstring)
-        """
         return df #tuned_model
