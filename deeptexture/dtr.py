@@ -164,6 +164,7 @@ class DTR:
                            imgfiles: List[str], 
                            angle: Union[None, int, List[int]] = None, 
                            size: Union[None, int] = None,
+                           scale: Union[None, float] = None,
                            ) -> np.ndarray:
         """Calculates DTRs for multiple images.
 

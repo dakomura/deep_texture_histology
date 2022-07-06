@@ -13,7 +13,7 @@ np.random.seed(42)
 sns.set()
 sns.set_style('ticks')
 
-#画像をプロットする
+# plot image
 def plt_dtr_image(X: np.ndarray,
                   files: List[str], 
                   method: Union[None, str] = None, 
