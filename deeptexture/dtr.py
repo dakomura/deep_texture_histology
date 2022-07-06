@@ -203,7 +203,7 @@ class DTR:
 
         medoid_dict = get_medoid(dtrs, cases)
 
-        imgfiles_mean=[medoid_dict[case] for case in u_cases]
+        imgfiles_mean=[imgfiles[medoid_dict[case]] for case in u_cases]
         
         return dtrs_mean, imgfiles_mean, list(u_cases)
         
