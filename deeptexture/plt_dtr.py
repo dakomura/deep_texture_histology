@@ -90,7 +90,7 @@ def plt_dtr_image(X: np.ndarray,
     if show_medoid:
         for i, file in enumerate(files):
             if not i in medoid_dict.values():
-                ab = _get_ab(file, 0.005*scale, X_emb[i,0],X_emb[i,1])
+                ab = _get_ab(file, 0.0125*scale, X_emb[i,0],X_emb[i,1])
                 ax.add_artist(ab)
         for i, file in enumerate(files):
             if i in medoid_dict.values():
