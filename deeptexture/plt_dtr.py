@@ -171,7 +171,7 @@ def plt_dtr_attr(X: np.ndarray,
 
     if show_medoid:
         s_list = np.ones((len(attr))) * 0.1 * s
-        if cases is None or len(cases) != len(files):
+        if cases is None or len(cases) != len(attr):
             raise Exception("Invalid values for cases.")
         if X.shape[1] == 2:
             raise Exception("Show medoid is available only when DTRs are given.")
