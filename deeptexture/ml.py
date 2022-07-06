@@ -1,6 +1,6 @@
 from typing import Any, Union
 import numpy as np
-from pycaret import classification as cl
+#from pycaret import classification as cl
 import pandas as pd
 
 class ML:
@@ -45,22 +45,18 @@ class ML:
                           )
         df[y_name] = y
 
-        s = cl.setup(df, 
-                     target = y_name, 
-                     fold_strategy = 'groupkfold',
-                     fold_groups = cases,
-                     fold = fold,
-                     pca = pca,
-                     session_id = 123,
-                     )
-        ml_model = cl.create_model(model)
-        print(ml_model)
-
-        print("model tuning")
-        tuned_model = cl.tune_model(ml_model)
-
-        pred = cl.predict_model(tuned_model,
-                                verbose = True,
-                                )
-
+        outstring = "s = cl.setup(df," \ 
+            "            target = y_name," \ 
+            "            fold_strategy = 'groupkfold'," \
+            "            fold_groups = cases," \
+            "            fold = fold," \
+            "            pca = pca," \
+            "            session_id = 123," \
+            "            )" \
+            "ml_model = cl.create_model(model)" \
+            "tuned_model = cl.tune_model(ml_model)" \
+            "pred = cl.predict_model(tuned_model," \
+            "                        verbose = True," \
+            "                        )"
+        print(outstring)
         return tuned_model
