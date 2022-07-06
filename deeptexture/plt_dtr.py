@@ -96,10 +96,10 @@ def plt_dtr_image(X: np.ndarray,
             if i in medoid_dict.values():
                 ab = _get_ab(file, 0.05*scale, X_emb[i,0],X_emb[i,1])
                 ax.add_artist(ab)
-
-    for i, file in enumerate(files):
-        ab = _get_ab(file, 0.05*scale, X_emb[i,0],X_emb[i,1])
-        ax.add_artist(ab)
+    else:
+        for i, file in enumerate(files):
+            ab = _get_ab(file, 0.05*scale, X_emb[i,0],X_emb[i,1])
+            ax.add_artist(ab)
             
     width1 = (np.max(X_emb[:,0]) - np.min(X_emb[:,0]))*0.1
     height1 = (np.max(X_emb[:,1]) - np.min(X_emb[:,1]))*0.1
