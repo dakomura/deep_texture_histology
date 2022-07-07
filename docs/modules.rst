@@ -1,8 +1,7 @@
-deep_texture_histology
-======================
+deeptexture
+===========
 
 .. toctree::
    :maxdepth: 4
 
    deeptexture
-   setup
