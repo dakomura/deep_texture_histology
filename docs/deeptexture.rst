@@ -4,14 +4,6 @@ deeptexture package
 Submodules
 ----------
 
-deeptexture.cbir module
------------------------
-
-.. automodule:: deeptexture.cbir
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 deeptexture.dtr module
 ----------------------
 
@@ -28,6 +20,21 @@ deeptexture.plt\_dtr module
    :undoc-members:
    :show-inheritance:
 
+deeptexture.cbir module
+-----------------------
+
+.. automodule:: deeptexture.cbir
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+deeptexture.ml module
+---------------------------
+
+.. automodule:: deeptexture.ml
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
