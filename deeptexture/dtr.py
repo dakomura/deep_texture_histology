@@ -127,7 +127,8 @@ class DTR:
         if size is not None:
             x = cv2.resize(x, dsize=[size, size])
         elif scale is not None:
-            x = cv2.resize(x, fx=scale, fy=scale)
+            h, w, _ = x.shape
+            x = cv2.resize(x, dsize=[int(h*scale), int(w*scale)])
 
 
         if angle is not None:

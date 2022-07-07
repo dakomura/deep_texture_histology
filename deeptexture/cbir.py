@@ -124,9 +124,9 @@ class CBIR:
         n = min(nrow, n)
         print (f"plot {n} images")
         df_tmp = df_tmp.sample(n=n)
-        labels = ["{}\n{}\n{}".format(os.path.basename(d[self.img_attr]), 
-                                      d[self.type_attr], 
-                                      d[self.case_attr]) for d in df_tmp.iterrows()]
+        labels = ["{}\n{}\n{}".format(os.path.basename(d[1][self.img_attr]), 
+                                      d[1][self.type_attr], 
+                                      d[1][self.case_attr]) for d in df_tmp.iterrows()]
         self._imgcats(df_tmp[self.img_attr], labels=labels)
             
 
@@ -136,6 +136,8 @@ class CBIR:
                show_query: bool = True,
                show: bool = True,
                scale: Union[None, int] = None,
+               fkey: Union[None, str] = None,
+               fval: Union[str, List[str], None] = None,
                ) -> Tuple[np.ndarray, pd.DataFrame]:
         """Search and show images similar to the query image using DTR
 
@@ -145,9 +147,17 @@ class CBIR:
             show (bool, optional): Show retrieved images. Defaults to True.
             n (int, optional): The number of retrieved images. Defaults to 50.
             scale (Union[None, int], optional): Query image is rescaled. Default to None.
+            fkey (Union[None, str]): Key for filter in df_attr. Default to None.
+            fval (Union[str, List[str], None]): Value(s) for filter. Default to None.
         Returns:
             Tuple[np.ndarray, pd.DataFrame]: Retrieved image file and the corresponding info(case, similarity, and attribute).
         """
+        if type(filter_val) == str:
+            filter_val = [filter_val]
+
+        if fkey is not None:
+            if not fkey in self.df_attr.columns:
+                raise Exception("invalid key for filter {}".format(fkey))
         
 
         qdtr = self.dtr_obj.get_dtr(qimgfile, scale=scale)
@@ -169,6 +179,11 @@ class CBIR:
             patient = data[self.case_attr]
             attr = data[self.type_attr]
             #mag = data.magnification
+            if fkey is not None:
+                v = self.df_attr[fkey][res]
+                if not v in fval:
+                    continue
+                
 
             if not patient in patients: #remove patient-level duplicates
                 patients.append(patient)
@@ -182,7 +197,7 @@ class CBIR:
         ### plot results
 
 
-        labels = ["{}\n{}\n{}".format(attr, patient, s) for attr,patient,d in zip(attrs, patients, sims)]
+        labels = ["{}\n{}\n{:.3f}".format(attr, patient, s) for attr,patient,s in zip(attrs, patients, sims)]
         if show:
             if show_query:
                 self._imgcats([qimgfile, *imgfiles], labels=["query", *labels])
@@ -214,6 +229,8 @@ class CBIR:
                     show_query: bool = True,
                     show: bool = True,
                     scale: Union[None, int] = None,
+                    fkey: Union[None, str] = None,
+                    fval: Union[str, List[str], None] = None,
                     ) -> pd.DataFrame:
         """Search and show images similar to the query image using DTR
 
@@ -224,9 +241,17 @@ class CBIR:
             show (bool, optional): Show retrieved images. Defaults to True.
             n (int, optional): The number of retrieved images. Defaults to 50.
             scale (Union[None, int], optional): Query images are rescaled. Default to None.
+            fkey (Union[None, str]): Key for filter in df_attr. Default to None.
+            fval (Union[str, List[str], None]): Value(s) for filter. Default to None.
         Returns:
             pd.DataFrame : Results
         """
+        if type(filter_val) == str:
+            filter_val = [filter_val]
+
+        if fkey is not None:
+            if not fkey in self.df_attr.columns:
+                raise Exception("invalid key for filter {}".format(fkey))
         
         if not strategy in ['max', 'mean']:
             raise Exception(f'invalid strategy: {strategy}')
@@ -251,6 +276,11 @@ class CBIR:
                 data = self.df_attr.iloc[res,]
                 patient = data[self.case_attr]
 
+                if fkey is not None:
+                    v = self.df_attr[fkey][res]
+                    if not v in fval:
+                        continue
+
                 if not patient in patients: #remove patient-level duplicates
                     patients.append(patient)
                     num.append(res)
@@ -268,23 +298,24 @@ class CBIR:
         qn = len(qimgfiles)
       
         if show:
-            ncols = qn
-            nrows = df_merged.shape[0]
+            nrows = qn
+            ncols = df_merged.shape[0]
             if show_query:
-                nrows += 1
+                ncols += 1
                 offset = qn + 1
                 for j, qimgfile in enumerate(qimgfiles):
                     plt.subplot(ncols, nrows, j + 1) 
                     im_list = np.asarray(Image.open(qimgfile))
                     plt.imshow(im_list)
                     plt.axis('off')
+                    plt.title('query: {}'.format(qimgfile))
             else:
                 offset = 1
                 
             for i, d in enumerate(df_merged.iterrows()):
                 for j in range(qn):
                     plt.subplot(ncols, nrows, j + i * qn + offset)
-                    imgfile = d[f'imgfiles_{j}']
+                    imgfile = d[1][f'imgfile_{j}']
                     if os.path.exists(imgfile):
                         im_list = np.asarray(Image.open(imgfile)) 
                         plt.imshow(im_list)
