@@ -32,6 +32,7 @@ Python version 3.6 or newer.
 * scikit-learn >=1.1.0
 * seaborn >=0.10.1
 * pandas >=1.1.0
+* cv2
 
 Recommended Environment
 =======================
