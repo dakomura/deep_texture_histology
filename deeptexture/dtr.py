@@ -2,6 +2,7 @@ from typing import Any, List, Tuple, Union
 from PIL import Image
 import numpy as np
 import cv2
+import pandas as pd
 import tensorflow as tf
 from tensorflow.keras import models, preprocessing
 from tensorflow.keras.applications import resnet50, vgg16, mobilenet_v2, inception_v3, nasnet, densenet, inception_resnet_v2
@@ -184,28 +185,38 @@ class DTR:
     
     def get_mean_dtrs(self,
                       dtrs: np.ndarray,
-                      imgfiles: List[str],
                       cases: List[str],
-                      ) -> Tuple[np.ndarray, List[str], List[str]]:
+                      df: Union[None, pd.DataFrame, List[str]] = None,
+                      ) -> Tuple[np.ndarray, List[str], Union[None, pd.DataFrame, List[str]]]:
         """Calculate mean dtrs.
 
         Args:
             dtrs (np.ndarray): M-dimensional DTRs for N images (NxM array).
-            imgfiles (List[str]): List of full image file path for N image.
             cases (List[str]): List of case IDs for N images.
+            df: Union[None, pd.DataFrame, List[str]]: List or dataframe containing attributes of N images. The order should be the same as dtrs and cases. Default to None.
 
         Returns:
             Tuple[np.ndarray, List[str], List[str]]: mean DTRs, 
             List of image file path of the representative images (medoid for each case), and case IDs.
         """
+
+        df = df.reset_index()
+        
         u_cases = np.sort(np.unique(cases))
         dtrs_mean = np.vstack([np.mean(dtrs[np.array(cases)==case, :], axis=0) for case in u_cases])
         dtrs_mean = dtrs_mean / np.linalg.norm(dtrs_mean, ord=2) #L2-normalize
 
         medoid_dict = get_medoid(dtrs, cases)
 
-        imgfiles_mean=[imgfiles[medoid_dict[case]] for case in u_cases]
-        
-        return dtrs_mean, imgfiles_mean, list(u_cases)
+        if df is not None:
+            if type(df) == list:
+                df_mean =[df[medoid_dict[case]] for case in u_cases]
+            else:
+                idx = np.array([medoid_dict[case] for case in u_cases])
+                df_mean = df.iloc[idx, :]
+        else:
+            df_mean = None
+                
+        return dtrs_mean, list(u_cases), df_mean
         
         

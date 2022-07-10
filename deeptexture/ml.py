@@ -1,4 +1,4 @@
-from typing import Any, Union
+from typing import Any, List, Union
 import numpy as np
 #from pycaret import classification as cl
 from sklearn.linear_model import LogisticRegression 
@@ -9,48 +9,72 @@ import sklearn.metrics as metrics
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from .utils import *
 
 class ML:
     def __init__(self,
                  dtrs: np.ndarray,
+                 imgfiles: List[str],
                  ) -> None:
         """initialize machine learning analysis using DTRs
 
         Args:
             dtrs (np.ndarray): M-dimensional DTRs for N images (NxM array)
+            imgfiles (List[str]): List of N image files.
         """
         
         self.dtrs = dtrs
+        self.imgfiles = imgfiles
 
     def get_lr(self,
                y: Union[list, np.ndarray],
                cases: Union[list, np.ndarray],
+               min_samples: int = 5,
                ) -> Any:
         """Logistic regression analysis.
 
         Args:
             y (Union[list, np.ndarray]): Target variable.
             cases (Union[list, np.ndarray]): Case IDs (used as group).
+            min_samples (int): Minimum number of cases analyzed in a target. Targets below the value will be removed. 
         Returns:
             Any: Logistic Regression model.
         """
+        #count cases for each class
+        labels = np.unique(y)
+        used_index = []
+        for l in labels:
+            target_index = np.where(np.array(y) == l)[0]
+            count = len(np.unique(np.array(cases)[np.array(y) == l]))
+            if count < min_samples:
+                print(f'class {l} is not analyzed (only {count} cases)')
+            else:
+                used_index.extend(list(target_index))
+        
+        dtrs2 = self.dtrs[used_index,:]
+        y = np.array(y)[used_index]
+        cases = np.array(cases)[used_index]
+        labels = np.unique(y)
 
-        if len(np.unique(y)) > 2:
+        if len(labels) > 2:
             mode = 'multi'
             print ("Muticlass => SVM")
             model = SVC(kernel = 'linear', C = 1)
-        else:
+        elif len(labels) == 2:
             mode = 'binary'
             print ("Binary => Logistic Regression")
             model =  LogisticRegression(solver='liblinear') 
+        else:
+            raise Exception(f'invalid number of classes ({labels})')
+
 
         #split cases
         u_cases = np.unique(cases)
         train_cases, test_cases = train_test_split(u_cases, 
                                                    test_size=0.25,
                                                    random_state=0) 
-        X_train = np.vstack([x for i, x in enumerate(self.dtrs) if cases[i] in train_cases])
-        X_test = np.vstack([x for i, x in enumerate(self.dtrs) if cases[i] in test_cases])
+        X_train = np.vstack([x for i, x in enumerate(dtrs2) if cases[i] in train_cases])
+        X_test = np.vstack([x for i, x in enumerate(dtrs2) if cases[i] in test_cases])
         y_train = [x for i, x in enumerate(y) if cases[i] in train_cases]
         y_test = [x for i, x in enumerate(y) if cases[i] in test_cases]
 
@@ -59,8 +83,14 @@ class ML:
         
         if mode == 'multi':
             y_pred = model.predict(X_test)
-            conf_mat = confusion_matrix(y_test,y_pred)
+            conf_mat = confusion_matrix(y_test,y_pred, labels=labels)
+            conf_mat = pd.DataFrame(data=conf_mat,
+                                    index=labels,
+                                    columns=labels)
             sns.heatmap(conf_mat, square=True, cbar=True, annot=True, cmap='Blues')
+            plt.yticks(rotation=90)
+            plt.xlabel("Prediction", fontsize=13, rotation=0)
+            plt.ylabel("Ground Truth", fontsize=13)
         else:
             probs = model.predict_proba(X_test)
             preds = probs[:,1]
@@ -77,48 +107,39 @@ class ML:
             plt.xlabel('False Positive Rate')
             plt.show()
 
+        return model
 
-    def get_caret_sl(self,
-                     y: Union[list, np.ndarray],
-                     cases: Union[list, np.ndarray],
-                     y_name: str = 'target',
-                     model: str = 'lr',
-                     fold: int = 3,
-                     pca: bool = False,
-                     ) -> Any:
-        """Supervised learning model using pycaret
+    def clustering(self,
+                   method: str = 'bayes_gmm',
+                   n_components: int = 10,
+                   show: bool = False,
+                   ) -> List[int]:
+        """Clustering of dtrs.
 
         Args:
-            y (Union[list, np.ndarray]): Target variable.
-            cases (Union[list, np.ndarray]): Case IDs (used as group).
-            y_name (str, optional): Name of target variable. Defaults to 'target'.
-            model (str, optional): Supervised learning model. Defaults to 'lr'.
-            fold (int, optional): Number of folds in K-fold cross validation. Defaults to 3.
-            pca (bool, optional): Apply PCA for preprocessing. Defaults to False.
+            method (str, optional): Clustering algorithm. Defaults to 'bayes_gmm'.
+            n_components (int, optional): Number of (maximum) clusters. Defaults to 10.
+            show (bool, optional): Show representative images. Defaults to False.
 
         Returns:
-            Any: Tuned model.
+            List[int]: Cluster labels.
         """
+                   
 
-        ndim = self.dtrs.shape[1]
-        digit = len(str(ndim))
-        
-        df = pd.DataFrame(data=self.dtrs,
-                          columns=['dim{}'.format(str(i).zfill(digit)) for i in range(ndim)],
-                          )
-        df[y_name] = y
+        if method == 'bayes_gmm':
+            from sklearn.mixture import BayesianGaussianMixture
+            model = BayesianGaussianMixture(n_components=n_components,
+                                            random_state=42)
+        else:
+            raise Exception(f'invalid clustering algorithm: {method}')
 
-        outstring = "s = cl.setup(df,\n" + \
-            f"            target = '{y_name}',\n" + \
-            "            fold_strategy = 'groupkfold',\n" + \
-            "            fold_groups = cases,\n" + \
-            f"            fold = {fold},\n" + \
-            f"            pca = {pca},\n" + \
-            "            session_id = 123,\n" + \
-            "            )\n" + \
-            f"ml_model = cl.create_model({model})\n" + \
-            "tuned_model = cl.tune_model(ml_model)\n" + \
-            "pred = cl.predict_model(tuned_model,\n" + \
-            "                        verbose = True)" 
-        print(outstring)
-        return df, cases
+        cluster_label = model.fit_predict(self.dtrs)
+
+        if show:
+            medoid_dict = get_medoid(self.dtrs, cluster_label)
+            imgfiles_medoid = [self.imgfiles[medoid_dict[c]] for c in sorted(np.unique(cluster_label))]
+            imgcats(imgfiles_medoid, 
+                    labels = sorted(np.unique(cluster_label)),
+                    nrows = 3)
+
+        return cluster_label

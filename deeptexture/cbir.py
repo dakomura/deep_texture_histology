@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from PIL import Image
 from .dtr import *
+from .utils import *
 plt.rcParams['font.size'] = 10 #font size
 plt.rcParams['figure.figsize'] = 20,70 #figure size
 
@@ -127,7 +128,7 @@ class CBIR:
         labels = ["{}\n{}\n{}".format(os.path.basename(d[1][self.img_attr]), 
                                       d[1][self.type_attr], 
                                       d[1][self.case_attr]) for d in df_tmp.iterrows()]
-        self._imgcats(df_tmp[self.img_attr], labels=labels)
+        imgcats(df_tmp[self.img_attr], labels=labels)
             
 
     def search(self,
@@ -138,6 +139,9 @@ class CBIR:
                scale: Union[None, int] = None,
                fkey: Union[None, str] = None,
                fval: Union[str, List[str], None] = None,
+               dpi: int = 320, 
+               save: bool = False, 
+               outfile: str = "", 
                ) -> Tuple[np.ndarray, pd.DataFrame]:
         """Search and show images similar to the query image using DTR
 
@@ -149,6 +153,9 @@ class CBIR:
             scale (Union[None, int], optional): Query image is rescaled. Default to None.
             fkey (Union[None, str]): Key for filter in df_attr. Default to None.
             fval (Union[str, List[str], None]): Value(s) for filter. Default to None.
+            dpi (int, optional): Dots per inch (DPI) of output image. Defaults to 320.
+            save (bool, optional): Save the output image to outfile if True. Defaults to False.
+            outfile (str, optional): Output image file. Defaults to "".
         Returns:
             Tuple[np.ndarray, pd.DataFrame]: Retrieved image file and the corresponding info(case, similarity, and attribute).
         """
@@ -158,6 +165,9 @@ class CBIR:
         if fkey is not None:
             if not fkey in self.df_attr.columns:
                 raise Exception("invalid key for filter {}".format(fkey))
+
+        if save is False:
+            outfile = ""
         
 
         qdtr = self.dtr_obj.get_dtr(qimgfile, scale=scale)
@@ -200,9 +210,9 @@ class CBIR:
         labels = ["{}\n{}\n{:.3f}".format(attr, patient, s) for attr,patient,s in zip(attrs, patients, sims)]
         if show:
             if show_query:
-                self._imgcats([qimgfile, *imgfiles], labels=["query", *labels])
+                imgcats([qimgfile, *imgfiles], labels=["query", *labels], save=outfile, dpi=dpi)
             else:
-                self._imgcats(imgfiles, labels=labels)
+                imgcats(imgfiles, labels=labels, save=outfile, dpi=dpi)
 
         return imgfiles, pd.DataFrame({'attr':attrs, 'case':patients, 'similarity':sims})
 
@@ -231,6 +241,9 @@ class CBIR:
                     scale: Union[None, int] = None,
                     fkey: Union[None, str] = None,
                     fval: Union[str, List[str], None] = None,
+                    dpi: int = 320,
+                    save: bool = False,
+                    outfile: str = "", 
                     ) -> pd.DataFrame:
         """Search and show images similar to the query image using DTR
 
@@ -243,6 +256,9 @@ class CBIR:
             scale (Union[None, int], optional): Query images are rescaled. Default to None.
             fkey (Union[None, str]): Key for filter in df_attr. Default to None.
             fval (Union[str, List[str], None]): Value(s) for filter. Default to None.
+            dpi (int, optional): Dots per inch (DPI) of output image. Defaults to 320.
+            save (bool, optional): Save the output image to outfile if True. Defaults to False.
+            outfile (str, optional): Output image file. Defaults to "".
         Returns:
             pd.DataFrame : Results
         """
@@ -252,6 +268,9 @@ class CBIR:
         if fkey is not None:
             if not fkey in self.df_attr.columns:
                 raise Exception("invalid key for filter {}".format(fkey))
+        
+        if save is False:
+            outfile = ""
         
         if not strategy in ['max', 'mean']:
             raise Exception(f'invalid strategy: {strategy}')
@@ -320,22 +339,7 @@ class CBIR:
                         im_list = np.asarray(Image.open(imgfile)) 
                         plt.imshow(im_list)
                         plt.axis('off')
+            if save is True:
+                plt.savefig(outfile, dpi=dpi)
             
         return df_merged
-
-    def _imgcats(self, 
-                    infiles: List[str], 
-                    labels: List[str], 
-                    nrows: int = 3, 
-                    ) -> None:
-
-        ncols = int(np.ceil(len(infiles)/nrows))
-        for i, infile in enumerate(infiles):
-            plt.subplot(ncols, nrows, i+1)
-            im = Image.open(infile)
-            im_list = np.asarray(im)
-            plt.imshow(im_list)
-            if len(labels) != 0:
-                plt.title(labels[i])
-            plt.axis('off')
-        plt.show()

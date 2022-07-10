@@ -1,6 +1,8 @@
-from typing import Dict, List
+from typing import Dict, List, Union
 import numpy as np
 from sklearn.metrics import pairwise_distances as pair_dist
+from PIL import Image
+import matplotlib.pyplot as plt
 
 
 def get_medoid(dtrs: np.ndarray,
@@ -25,3 +27,23 @@ def get_medoid(dtrs: np.ndarray,
         medoid_dict[case] = medoid_idx
 
     return medoid_dict
+
+def imgcats(infiles: List[str],
+            labels: List[str],
+            nrows: int = 3, 
+            save: Union[None, str] = None,
+            dpi: int = 320,
+            ) -> None:
+
+    ncols = int(np.ceil(len(infiles)/nrows))
+    for i, infile in enumerate(infiles):
+        plt.subplot(ncols, nrows, i+1)
+        im = Image.open(infile)
+        im_list = np.asarray(im)
+        plt.imshow(im_list)
+        if len(labels) != 0:
+            plt.title(labels[i])
+        plt.axis('off')
+    if save != None:
+        plt.savefig(save, dpi=dpi)
+    plt.show()
