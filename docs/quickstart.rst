@@ -52,10 +52,10 @@ Plot DTR distribution
 
         from deeptexture import plt_dtr
 
-        imgfiles = ['01.jpg',
-                    '02.jpg',
-                    '03.jpg',
-                    '04.jpg',]
+        imgfiles = ['./01.jpg',
+                    './02.jpg',
+                    './03.jpg',
+                    './04.jpg',]
         text = ['01','02','03','04',]
 
         dtrs = dtr_obj.get_dtr_multifiles(imgfiles, angle=90)
@@ -72,10 +72,10 @@ Plot DTR distribution
 
         from deeptexture import plt_dtr
 
-        imgfiles = ['01.jpg',
-                    '02.jpg',
-                    '03.jpg',
-                    '04.jpg',]
+        imgfiles = ['./01.jpg',
+                    './02.jpg',
+                    './03.jpg',
+                    './04.jpg',]
         attr =  ['cancer',
                 'cancer',
                 'normal',
@@ -114,10 +114,10 @@ You can create original database and save the files in the specified directory.
         cbir_obj = cbir.CBIR(dtr_obj, project='DB', working_dir='CBIR')
 
         # create CBIR database
-        imgfiles = ['01.jpg',
-                    '02.jpg',
-                    '03.jpg',
-                    '04.jpg',]
+        imgfiles = ['./01.jpg',
+                    './02.jpg',
+                    './03.jpg',
+                    './04.jpg',]
         patients = ['01',
                     '02',
                     '03',
@@ -139,3 +139,38 @@ You can create original database and save the files in the specified directory.
         # search the most similar images (top two)
         qimgfile = "./5.jpg"
         cbir_obj.search(qimgfile, img_attr='imgfile', case_attr='patient', n=2)
+
+Supervised learning model
+-------------------------
+
+.. code-block:: python
+
+    import deeptexture as dt
+    from deeptexture import ml
+    
+    imgfiles = ['./01.jpg',
+                './02.jpg',
+                './03.jpg',
+                './04.jpg',]
+    patients = ['01',
+                '02',
+                '03',
+                '04',]
+    attr =  ['cancer',
+             'cancer',
+             'normal',
+             'normal',]
+    df_attr = pd.DataFrame({'imgfile': imgfiles,
+                            'patient': patients,
+                            'tissue': attr})
+
+    dtrs = dtr_obj.get_dtr_multifiles(imgfiles, angle=90) 
+    
+    # create ml object
+    ml_obj = ml.ML(dtrs, df_attr.imgfile)
+    
+    # create a model to classify image into tissue type
+    y = df_attr.tissue
+    cases = df_attr.patient
+    
+    lr = ml_obj.get_lr(y, cases)
