@@ -159,8 +159,8 @@ class CBIR:
         Returns:
             Tuple[np.ndarray, pd.DataFrame]: Retrieved image file and the corresponding info(case, similarity, and attribute).
         """
-        if type(filter_val) == str:
-            filter_val = [filter_val]
+        if type(fval) == str:
+            fval = [fval]
 
         if fkey is not None:
             if not fkey in self.df_attr.columns:
@@ -262,8 +262,8 @@ class CBIR:
         Returns:
             pd.DataFrame : Results
         """
-        if type(filter_val) == str:
-            filter_val = [filter_val]
+        if type(fval) == str:
+            fval = [fval]
 
         if fkey is not None:
             if not fkey in self.df_attr.columns:

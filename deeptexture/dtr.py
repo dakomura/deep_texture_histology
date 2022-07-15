@@ -200,7 +200,6 @@ class DTR:
             List of image file path of the representative images (medoid for each case), and case IDs.
         """
 
-        df = df.reset_index()
         
         u_cases = np.sort(np.unique(cases))
         dtrs_mean = np.vstack([np.mean(dtrs[np.array(cases)==case, :], axis=0) for case in u_cases])
@@ -212,6 +211,7 @@ class DTR:
             if type(df) == list:
                 df_mean =[df[medoid_dict[case]] for case in u_cases]
             else:
+                #df = df.reset_index()
                 idx = np.array([medoid_dict[case] for case in u_cases])
                 df_mean = df.iloc[idx, :]
         else:

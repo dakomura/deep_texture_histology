@@ -1,8 +1,10 @@
+from audioop import add
 from typing import Any, List, Union
 import numpy as np
 #from pycaret import classification as cl
 from sklearn.linear_model import LogisticRegression 
 from sklearn.svm import SVC
+from sklearn import preprocessing as pp
 from sklearn.model_selection import train_test_split 
 from sklearn.metrics import confusion_matrix
 import sklearn.metrics as metrics
@@ -29,17 +31,23 @@ class ML:
     def get_lr(self,
                y: Union[list, np.ndarray],
                cases: Union[list, np.ndarray],
+               additional_features: np.ndarray = None,
                min_samples: int = 5,
+               show: bool = True,
                ) -> Any:
         """Logistic regression analysis.
 
         Args:
             y (Union[list, np.ndarray]): Target variable.
             cases (Union[list, np.ndarray]): Case IDs (used as group).
-            min_samples (int): Minimum number of cases analyzed in a target. Targets below the value will be removed. 
+            additional_features (np.ndarray, optional): Additional features used for the classification. It MUST be the numerical arrays. If it is a categorical variable, please use categorical encoders. Defaults to None.
+            min_samples (int, optional): Minimum number of cases analyzed in a target. Targets below the value will be removed. Defaults to 5.
+            show (bool, optional): Show confusion matrix or ROC curve. Defaults to True.
         Returns:
-            Any: Logistic Regression model.
+            Any: AUROC (for binary classification) or confusion matrix (for multiclass classification).
         """
+
+        
         #count cases for each class
         labels = np.unique(y)
         used_index = []
@@ -52,9 +60,14 @@ class ML:
                 used_index.extend(list(target_index))
         
         dtrs2 = self.dtrs[used_index,:]
+        if additional_features is not None:
+            if len(additional_features.shape) == 1:
+                additional_features = np.expand_dims(additional_features, axis=1)
+            dtrs2 = np.concatenate([dtrs2, additional_features],axis=1)
         y = np.array(y)[used_index]
         cases = np.array(cases)[used_index]
-        labels = np.unique(y)
+        labels = list(np.unique(y))
+        print(f'labels: {labels}')
 
         if len(labels) > 2:
             mode = 'multi'
@@ -80,34 +93,40 @@ class ML:
 
 
         model.fit(X_train, y_train) 
+        self.model = model
         
         if mode == 'multi':
             y_pred = model.predict(X_test)
-            conf_mat = confusion_matrix(y_test,y_pred, labels=labels)
+            conf_mat = confusion_matrix(y_test, y_pred, labels=labels)
             conf_mat = pd.DataFrame(data=conf_mat,
                                     index=labels,
                                     columns=labels)
-            sns.heatmap(conf_mat, square=True, cbar=True, annot=True, cmap='Blues')
-            plt.yticks(rotation=90)
-            plt.xlabel("Prediction", fontsize=13, rotation=0)
-            plt.ylabel("Ground Truth", fontsize=13)
+            if show:
+                sns.heatmap(conf_mat, square=True, cbar=True, annot=True, cmap='Blues')
+                plt.yticks(rotation=90)
+                plt.xlabel("Prediction", fontsize=13, rotation=0)
+                plt.ylabel("Ground Truth", fontsize=13)
+
+            return conf_mat
         else:
             probs = model.predict_proba(X_test)
             preds = probs[:,1]
-            fpr, tpr, threshold = metrics.roc_curve(y_test, preds)
+            fpr, tpr, _ = metrics.roc_curve(y_test, preds)
             roc_auc = metrics.auc(fpr, tpr)
 
-            plt.title('Receiver Operating Characteristic')
-            plt.plot(fpr, tpr, 'b', label = 'AUC = %0.2f' % roc_auc)
-            plt.legend(loc = 'lower right')
-            plt.plot([0, 1], [0, 1],'r--')
-            plt.xlim([0, 1])
-            plt.ylim([0, 1])
-            plt.ylabel('True Positive Rate')
-            plt.xlabel('False Positive Rate')
-            plt.show()
+            if show:
+                plt.title('Receiver Operating Characteristic')
+                plt.plot(fpr, tpr, 'b', label = 'AUC = %0.2f' % roc_auc)
+                plt.legend(loc = 'lower right')
+                plt.plot([0, 1], [0, 1],'r--')
+                plt.xlim([0, 1])
+                plt.ylim([0, 1])
+                plt.ylabel('True Positive Rate')
+                plt.xlabel('False Positive Rate')
+                plt.show()
 
-        return model
+            return roc_auc
+
 
     def clustering(self,
                    method: str = 'bayes_gmm',
