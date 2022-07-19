@@ -54,7 +54,7 @@ class DTR:
             else:
                 raise Exception(f"invalid data type in angle {angle}")
                 
-
+        img = self.preprocess(img).unsqueeze(0).to(self.device)
         with torch.no_grad():
             image_features = self.model.encode_image(img)
             image_features /= image_features.norm(dim=-1, keepdim=True)
