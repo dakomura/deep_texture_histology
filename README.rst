@@ -24,7 +24,7 @@ Prerequisites
 Python version 3.6 or newer.
 
 * numpy >=1.20.3
-* tensorflow >=2.1.0
+* pytorch >=1.7.1
 * joblib >=0.13.2
 * Pillow >=8.0.1
 * nmslib >=2.0.6

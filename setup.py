@@ -17,7 +17,7 @@ PYTHON_REQUIRES = ">=3.6"
 
 INSTALL_REQUIRES = [
     'numpy',
-    'tensorflow',
+    'torch',
     'joblib',
     'Pillow',
     'nmslib',

@@ -3,138 +3,50 @@ from PIL import Image
 import numpy as np
 import cv2
 import pandas as pd
-import tensorflow as tf
-from tensorflow.keras import models, preprocessing
-from tensorflow.keras.applications import resnet50, vgg16, mobilenet_v2, inception_v3, nasnet, densenet, inception_resnet_v2
 
 from .utils import *
 
-#efficientnet is optional
-import importlib
-eff_spec = importlib.util.find_spec("efficientnet")
-if eff_spec is not None:
-    import efficientnet.tfkeras
-
+import torch
 
 class DTR:
     def __init__(self,
-                 arch: str = 'vgg',
-                 layer: str = 'block3_conv3', 
-                 dim: int = 1024, 
+                 vision_model: str = "ViT-L/14@336px",
                  ) -> None:
-        """Initializes DTR model and its preprocessing function.
+        """Initialize CLIP model
 
         Args:
-            arch (str, optional): CNN model. Defaults to 'vgg'.
-            layer (str, optional): A layer in the CNN model. Defaults to 'block3_conv3'.
-            dim (int, optional): The output dimension. Defaults to 1024.
+            vision_model (str, optional): Image vision model (RN50,RN101,RN50x4,RN50x64,ViT-B/32,ViT-B/16,ViT-L/14,ViT-L/14@336px). Defaults to "ViT-L/14@336px".
         """
-        self.arch = arch
-        self.layer = layer
-        self.dim = dim
-
-        self.archs_dict = {
-            'mobilenet': mobilenet_v2.MobileNetV2,
-            'vgg': vgg16.VGG16,
-            'resnet50': resnet50.ResNet50,
-            'inceptionv3': inception_v3.InceptionV3,
-            'nasnet': nasnet.NASNetLarge,
-            'densenet': densenet.DenseNet201,
-            'inceptionresnetv2': inception_resnet_v2.InceptionResNetV2,
-        }
-        self.prep_dict = {
-            'mobilenet': mobilenet_v2,
-            'vgg': vgg16,
-            'resnet50': resnet50,
-            'inceptionv3': inception_v3,
-            'nasnet': nasnet,
-            'densenet': densenet,
-            'inceptionresnetv2': inception_resnet_v2,
-        }
-
-        if eff_spec is not None:
-           self.archs_dict['efficientnet'] = efficientnet.tfkeras.EfficientNetB7
-           self.prep_dict['efficientnet'] = efficientnet.tfkeras 
-
-        print(f"arch:{arch}")
-        print(f"layer:{layer}")
-        print(f"dim:{dim}")
-
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.vision_model = vision_model
         self._create_model()
 
-        # preprocess function
-        self.prep = self.prep_dict[arch].preprocess_input
-
-
     def _create_model(self) -> None:
-        conv_base = self.archs_dict[self.arch](
-            weights = "imagenet",
-            include_top = None,
-            input_shape = (None, None, 3))
-
-        x1 = conv_base.get_layer(self.layer).output
-        _,_,_,c = x1.shape
-
-        rng = np.random.default_rng(2022)
-
-        r1 = rng.uniform(0,1,(1,c,self.dim))
-        nfilter1 = np.where(r1>0.5,1,-1)
-        filter1 = tf.constant(nfilter1,dtype=float)
-
-        r2 = rng.uniform(0,1,(1,c,self.dim))
-        nfilter2 = np.where(r2>0.5,1,-1)
-        filter2 = tf.constant(nfilter2,dtype=float)
-
-        x2 = tf.keras.layers.Reshape((-1,c))(x1)
-
-        y1 = tf.nn.conv1d(x2,filter1,stride=1,padding='SAME',data_format='NWC')
-        y2 = tf.nn.conv1d(x2,filter2,stride=1,padding='SAME',data_format='NWC')
-
-        y3 = tf.keras.layers.Reshape((-1,self.dim))(y1)
-        y4 = tf.keras.layers.Reshape((-1,self.dim))(y2)
-
-        z1 = tf.keras.layers.Multiply()([y3,y4])
-        z2 = tf.keras.layers.GlobalAveragePooling1D()(z1)
-        z3 = tf.math.sqrt(tf.math.abs(z2))*tf.math.sign(z2)
-        z4 = tf.math.l2_normalize(z3)
-
-        self.cbp = models.Model(conv_base.input,z4)
+        import clip
+        self.model, self.preprocess = clip.load(self.vision_model, device=self.device)
 
     def get_dtr(self, 
                 img: Any, 
                 angle: Union[None, int, List[int]] = None,
-                size: Union[None, int] = None,
-                scale: Union[None, float] = None,
                 ) -> np.ndarray:
         """Calculates DTR for an image object or file.
 
         Args:
             img (Any): Image file or image object (numpy array or PIL Image object)
             angle (Union[None, int, List[int]], optional): Rotation angle(s) (0-360). If list is given, mean DTRs of the rotated image return. Defaults to None.
-            size (Union[None, int], optional): Image is resized to the given size. Default to None.
-            scale (Union[None, int], optional): Image is rescaled. Active only size is not specified. Default to None.
 
         Returns:
             np.ndarray: DTR for the image
         """
         if type(img) == str:
-            img = Image.open(img).convert("RGB")
-            x = np.array(img)
+            img = Image.open(img)
         elif not type(img) == np.ndarray:
-            x = np.array(img)
-        else:
-            x = img
-
-        if size is not None:
-            x = cv2.resize(x, dsize=[size, size])
-        elif scale is not None:
-            h, w, _ = x.shape
-            x = cv2.resize(x, dsize=[int(h*scale), int(w*scale)])
+            img = Image.fromarray(img)
 
 
         if angle is not None:
             if type(angle) == int:
-                x = preprocessing.image.apply_affine_transform(x, theta = angle)
+                img = img.rotate(angle)
             elif type(angle) == list:
                 dtrs = np.vstack([self.get_dtr(img, theta) for theta in angle])
                 dtr_mean = np.mean(dtrs, axis=0)
@@ -143,9 +55,12 @@ class DTR:
                 raise Exception(f"invalid data type in angle {angle}")
                 
 
-        x = np.expand_dims(x, axis=0)
-        x = self.prep(x)
-        return np.array(self.cbp([x])[0])
+        with torch.no_grad():
+            image_features = self.model.encode_image(img)
+            image_features /= image_features.norm(dim=-1, keepdim=True)
+            image_features = np.array(image_features.cpu().squeeze())
+
+        return image_features
 
     def sim(self, 
             x: np.ndarray,

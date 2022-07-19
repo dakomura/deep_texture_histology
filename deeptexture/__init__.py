@@ -4,4 +4,4 @@ from .cbir import *
 from .ml import *
 from .utils import *
 
-__version__ = '0.2.5'
+__version__ = '0.2.5_clip'
