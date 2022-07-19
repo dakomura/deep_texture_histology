@@ -40,7 +40,7 @@ class DTR:
         """
         if type(img) == str:
             img = Image.open(img)
-        elif not type(img) == np.ndarray:
+        elif type(img) == np.ndarray:
             img = Image.fromarray(img)
 
 
