@@ -1,5 +1,6 @@
 from typing import Any, List, Tuple, Union
 from PIL import Image
+from pyrsistent import mutant
 import numpy as np
 import cv2
 import pandas as pd
@@ -105,6 +106,7 @@ class DTR:
                 angle: Union[None, int, List[int]] = None,
                 size: Union[None, int] = None,
                 scale: Union[None, float] = None,
+                multi_scale: bool = False,
                 ) -> np.ndarray:
         """Calculates DTR for an image object or file.
 
@@ -113,6 +115,7 @@ class DTR:
             angle (Union[None, int, List[int]], optional): Rotation angle(s) (0-360). If list is given, mean DTRs of the rotated image return. Defaults to None.
             size (Union[None, int], optional): Image is resized to the given size. Default to None.
             scale (Union[None, int], optional): Image is rescaled. Active only size is not specified. Default to None.
+            multi_scale (bool, optional): DTR for 1/4 sized image is concatenated. The dimension of the DTR will be  2*dim. Default to False.
 
         Returns:
             np.ndarray: DTR for the image
@@ -131,12 +134,17 @@ class DTR:
             h, w, _ = x.shape
             x = cv2.resize(x, dsize=[int(h*scale), int(w*scale)])
 
+        if multi_scale:
+            #1/4 scale
+            x2 = cv2.resize(x, dize=None, fx=0.25, fy=0.25)
 
         if angle is not None:
             if type(angle) == int:
                 x = preprocessing.image.apply_affine_transform(x, theta = angle)
+                if multi_scale: 
+                    x2 = preprocessing.image.apply_affine_transform(x2, theta = angle)
             elif type(angle) == list:
-                dtrs = np.vstack([self.get_dtr(img, theta) for theta in angle])
+                dtrs = np.vstack([self.get_dtr(img, theta, size, scale, multi_scale) for theta in angle])
                 dtr_mean = np.mean(dtrs, axis=0)
                 return dtr_mean / np.linalg.norm(dtr_mean, ord=2) #L2-normalize
             else:
@@ -145,7 +153,15 @@ class DTR:
 
         x = np.expand_dims(x, axis=0)
         x = self.prep(x)
-        return np.array(self.cbp([x])[0])
+        dtr = np.array(self.cbp([x])[0])
+
+        if multi_scale:
+            x2 = np.expand_dims(x2, axis=0)
+            x2 = self.prep(x2)
+            dtr2 = np.array(self.cbp([x2])[0])
+            dtr = np.concatenate([dtr, dtr2])
+
+        return dtr
 
     def sim(self, 
             x: np.ndarray,

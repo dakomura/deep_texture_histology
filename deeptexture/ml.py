@@ -83,8 +83,10 @@ class ML:
 
         #split cases
         u_cases = np.unique(cases)
+        y_ucases = [y[cases==c][0] for c in u_cases] 
         train_cases, test_cases = train_test_split(u_cases, 
                                                    test_size=0.25,
+                                                   stratify=y_ucases,
                                                    random_state=0) 
         X_train = np.vstack([x for i, x in enumerate(dtrs2) if cases[i] in train_cases])
         X_test = np.vstack([x for i, x in enumerate(dtrs2) if cases[i] in test_cases])
