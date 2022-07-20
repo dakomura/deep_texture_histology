@@ -136,7 +136,6 @@ class CBIR:
                n: int = 50,
                show_query: bool = True,
                show: bool = True,
-               scale: Union[None, int] = None,
                fkey: Union[None, str] = None,
                fval: Union[str, List[str], None] = None,
                dpi: int = 320, 
@@ -170,8 +169,8 @@ class CBIR:
             outfile = ""
         
 
-        qdtr = self.dtr_obj.get_dtr(qimgfile, scale=scale)
-        qdtr_rot = self.dtr_obj.get_dtr(qimgfile, angle = 90, scale=scale)
+        qdtr = self.dtr_obj.get_dtr(qimgfile)
+        qdtr_rot = self.dtr_obj.get_dtr(qimgfile, angle = 90)
 
         ## search
         k = min(self.df_attr.shape[0], n * 50) # the number of retrieved nearest neighbors
@@ -238,7 +237,6 @@ class CBIR:
                     n: int = 50,
                     show_query: bool = True,
                     show: bool = True,
-                    scale: Union[None, int] = None,
                     fkey: Union[None, str] = None,
                     fval: Union[str, List[str], None] = None,
                     dpi: int = 320,
@@ -278,8 +276,8 @@ class CBIR:
 
         df_each = []
         for i, qimgfile in enumerate(qimgfiles):
-            qdtr = self.dtr_obj.get_dtr(qimgfile, scale=scale)
-            qdtr_rot = self.dtr_obj.get_dtr(qimgfile, angle = 90, scale=scale)
+            qdtr = self.dtr_obj.get_dtr(qimgfile)
+            qdtr_rot = self.dtr_obj.get_dtr(qimgfile, angle = 90)
 
             ## search
             k = min(self.df_attr.shape[0], n * 50) # the number of retrieved nearest neighbors

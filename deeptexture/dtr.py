@@ -3,6 +3,7 @@ from PIL import Image
 import numpy as np
 import cv2
 import pandas as pd
+from tqdm import tqdm
 
 from .utils import *
 
@@ -90,7 +91,7 @@ class DTR:
         Returns:
             np.ndarray: DTRs
         """
-        dtrs = np.vstack([self.get_dtr(imgfile, angle=angle) for imgfile in imgfiles])
+        dtrs = np.vstack([self.get_dtr(imgfile, angle=angle) for imgfile in tqdm(imgfiles)])
     
         return dtrs
     
