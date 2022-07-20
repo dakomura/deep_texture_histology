@@ -115,7 +115,7 @@ class DTR:
         
         u_cases = np.sort(np.unique(cases))
         dtrs_mean = np.vstack([np.mean(dtrs[np.array(cases)==case, :], axis=0) for case in u_cases])
-        dtrs_mean = dtrs_mean / np.linalg.norm(dtrs_mean, ord=2) #L2-normalize
+        dtrs_mean = dtrs_mean.astype(np.float32) / np.linalg.norm(dtrs_mean.astype(np.float32), ord=2) #L2-normalize
 
         medoid_dict = get_medoid(dtrs, cases)
 
