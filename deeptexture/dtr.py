@@ -12,6 +12,7 @@ import torch
 class DTR:
     def __init__(self,
                  vision_model: str = "ViT-L/14@336px",
+                 download_root: Union[None, str] = None,
                  ) -> None:
         """Initialize CLIP model
 
@@ -20,11 +21,12 @@ class DTR:
         """
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.vision_model = vision_model
+        self.download_root = download_root
         self._create_model()
 
     def _create_model(self) -> None:
         import clip
-        self.model, self.preprocess = clip.load(self.vision_model, device=self.device)
+        self.model, self.preprocess = clip.load(self.vision_model, device=self.device, download_root=self.download_root)
 
     def get_dtr(self, 
                 img: Any, 
