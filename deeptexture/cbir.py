@@ -34,6 +34,7 @@ class CBIR:
 
     def create_db(self,
                     df_attr: Any,
+                    dtrs: Union[None, np.ndarray] = None,
                     img_attr: str = "imgfile",
                     case_attr: str = "patient",
                     type_attr: str = "tissue",
@@ -43,6 +44,7 @@ class CBIR:
 
         Args:
             df_attr (Any): Pandas dataframe containing at least image files and case IDs.
+            dtrs (np.ndarray, optional): pre-computed DTRs for the image files. The order should be the same as the img_attr. Default to None. 
             img_attr (str, optional): Column name of image files in df_attr. Defaults to "imgfile".
             case_attr (str, optional): Column name of case ID in df_attr. Defaults to "patient".
             type_attr (str, optional): Column name of additional attribute to show in df_attr. Defaults to "tissue".
@@ -56,7 +58,10 @@ class CBIR:
 
         imgfiles = df_attr[img_attr]
 
-        self.dtrs = self.dtr_obj.get_dtr_multifiles(imgfiles)
+        if dtrs is None:
+            self.dtrs = self.dtr_obj.get_dtr_multifiles(imgfiles)
+        else:
+            self.dtrs = dtrs
             
         #make index    
         params = {'M': 20, 'post': 0, 'efConstruction': 500}
@@ -333,10 +338,12 @@ class CBIR:
                 for j in range(qn):
                     plt.subplot(ncols, nrows, j + i * qn + offset)
                     imgfile = d[1][f'imgfile_{j}']
-                    if os.path.exists(imgfile):
-                        im_list = np.asarray(Image.open(imgfile)) 
-                        plt.imshow(im_list)
-                        plt.axis('off')
+                    if type(imgfile) != int:
+                        if os.path.exists(imgfile):
+                            im_list = np.asarray(Image.open(imgfile)) 
+                            plt.imshow(im_list)
+                            plt.title('sim:{}'.format(d[1][f'sim_{j}']))
+                    plt.axis('off')
             if save is True:
                 plt.savefig(outfile, dpi=dpi)
             
