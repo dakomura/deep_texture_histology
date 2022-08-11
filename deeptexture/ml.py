@@ -1,7 +1,6 @@
 from audioop import add
 from typing import Any, List, Union
 import numpy as np
-#from pycaret import classification as cl
 from sklearn.linear_model import LogisticRegression 
 from sklearn.svm import SVC
 from sklearn import preprocessing as pp
@@ -10,8 +9,10 @@ from sklearn.metrics import confusion_matrix
 import sklearn.metrics as metrics
 import pandas as pd
 import seaborn as sns
+import misvm
 import matplotlib.pyplot as plt
 from .utils import *
+
 
 class ML:
     def __init__(self,
@@ -28,12 +29,13 @@ class ML:
         self.dtrs = dtrs
         self.imgfiles = imgfiles
 
-    def get_lr(self,
+    def fit_eval(self,
                y: Union[list, np.ndarray],
                cases: Union[list, np.ndarray],
                additional_features: np.ndarray = None,
                min_samples: int = 5,
                show: bool = True,
+               mil: bool = False,
                ) -> Any:
         """Logistic regression analysis.
 
@@ -43,6 +45,7 @@ class ML:
             additional_features (np.ndarray, optional): Additional features used for the classification. It MUST be the numerical arrays. If it is a categorical variable, please use categorical encoders. Defaults to None.
             min_samples (int, optional): Minimum number of cases analyzed in a target. Targets below the value will be removed. Defaults to 5.
             show (bool, optional): Show confusion matrix or ROC curve. Defaults to True.
+            mil (bool, optional): Multiple Instance Learning (MISVM with linear classifier). Defaults to True.
         Returns:
             Any: AUROC (for binary classification) or confusion matrix (for multiclass classification).
         """
@@ -69,7 +72,17 @@ class ML:
         labels = list(np.unique(y))
         print(f'labels: {labels}')
 
-        if len(labels) > 2:
+        if mil:
+            le = pp.LabelEncoder()
+            print ("Multiple Instance Learing mode")
+            model = misvm.MICA(kernel='linear', C=1.0, max_iters=50)
+
+            if len(labels) > 2:
+                mode = 'multi'
+                raise Exception(f'Only binary classification is supported for MIL ({len(labels)})')
+            elif len(labels) == 2:
+                mode = 'binary'
+        elif len(labels) > 2:
             mode = 'multi'
             print ("Muticlass => SVM")
             model = SVC(kernel = 'linear', C = 1)
@@ -86,10 +99,19 @@ class ML:
         train_cases, test_cases = train_test_split(u_cases, 
                                                    test_size=0.25,
                                                    random_state=0) 
-        X_train = np.vstack([x for i, x in enumerate(dtrs2) if cases[i] in train_cases])
-        X_test = np.vstack([x for i, x in enumerate(dtrs2) if cases[i] in test_cases])
-        y_train = [x for i, x in enumerate(y) if cases[i] in train_cases]
-        y_test = [x for i, x in enumerate(y) if cases[i] in test_cases]
+        if mil:
+            X_train = [np.vstack(dtrs2[np.where(cases == case)[0],:]) for case in train_cases]
+            X_test = [np.vstack(dtrs2[np.where(cases == case)[0],:]) for case in test_cases]
+
+            y_enc = le.fit_transform(y)
+            y_train = [y_enc[np.where(cases == case)[0]][0] for case in train_cases]
+            y_test = [y_enc[np.where(cases == case)[0]][0] for case in test_cases]
+            
+        else:
+            X_train = np.vstack([x for i, x in enumerate(dtrs2) if cases[i] in train_cases])
+            X_test = np.vstack([x for i, x in enumerate(dtrs2) if cases[i] in test_cases])
+            y_train = [x for i, x in enumerate(y) if cases[i] in train_cases]
+            y_test = [x for i, x in enumerate(y) if cases[i] in test_cases]
 
 
         model.fit(X_train, y_train) 
@@ -110,8 +132,11 @@ class ML:
 
             return conf_mat
         else:
-            probs = model.predict_proba(X_test)
-            preds = probs[:,1]
+            if mil:
+                preds = model.predict(X_test)
+            else:
+                probs = model.predict_proba(X_test)
+                preds = probs[:,1]
             fpr, tpr, _ = metrics.roc_curve(y_test, preds)
             roc_auc = metrics.auc(fpr, tpr)
 
