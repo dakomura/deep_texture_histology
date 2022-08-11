@@ -99,8 +99,9 @@ class CBIR:
 
         self.df_attr.to_pickle('{}/{}/df.gz'.format(self.working_dir,
                                                 self.project))
-        self.df_cat.to_pickle('{}/{}/df_cat.gz'.format(self.working_dir,
-                                                self.project))
+        if self.df_cat is not None:
+            self.df_cat.to_pickle('{}/{}/df_cat.gz'.format(self.working_dir,
+                                                    self.project))
         np.save('{}/{}/feats.npy'.format(self.working_dir,
                                             self.project),
                 self.dtrs)
@@ -112,8 +113,11 @@ class CBIR:
                                                         self.project))
         self.df_attr = joblib.load('{}/{}/df.gz'.format(self.working_dir,
                                                         self.project))
-        self.df_cat = joblib.load('{}/{}/df_cat.gz'.format(self.working_dir,
-                                                        self.project))
+        try:
+            self.df_cat = joblib.load('{}/{}/df_cat.gz'.format(self.working_dir,
+                                                            self.project))
+        except:
+            self.df_cat = None
         self.index = nmslib.init(method='hnsw', space='cosinesimil')
         self.index.loadIndex(filename = self.indexfile)
 
