@@ -4,6 +4,7 @@ from typing import Any, List
 import nmslib
 import joblib
 import numpy as np
+import collections
 import matplotlib.pyplot as plt
 import pandas as pd
 from PIL import Image
@@ -38,6 +39,7 @@ class CBIR:
                     img_attr: str = "imgfile",
                     case_attr: str = "patient",
                     type_attr: str = "tissue",
+                    df_cat: Any = None,
                     save: bool = True,
                     ) -> None:
         """Create CBIR database.
@@ -48,6 +50,7 @@ class CBIR:
             img_attr (str, optional): Column name of image files in df_attr. Defaults to "imgfile".
             case_attr (str, optional): Column name of case ID in df_attr. Defaults to "patient".
             type_attr (str, optional): Column name of additional attribute to show in df_attr. Defaults to "tissue".
+            df_cat (Any): Pandas dataframe containing information of type_attr (e.g. differential diagnosis, text). Defaults to None.
             save (bool, optional): Saves database in the project direcotry if True. Defaults to True.
         """
 
@@ -55,6 +58,7 @@ class CBIR:
         self.img_attr = img_attr
         self.case_attr = case_attr
         self.type_attr = type_attr
+        self.df_cat = df_cat
 
         imgfiles = df_attr[img_attr]
 
@@ -69,6 +73,14 @@ class CBIR:
         self.index.addDataPointBatch(self.dtrs)
         self.index.createIndex(index_params = params)
 
+        
+        # calculated the number of cases in each category
+        cases = np.array(df_attr[case_attr])
+        ucases = np.unique(cases)
+        types = np.array(df_attr[type_attr])
+        cats = [types[np.where(cases == case)[0][0]] for case in ucases]
+        self.cat_counter = collections.Counter(cats)
+
         if save:
             self.save_db()
 
@@ -79,12 +91,15 @@ class CBIR:
 
         joblib.dump({'img_attr':self.img_attr,
                     'case_attr':self.case_attr,
-                    'type_attr':self.type_attr},
+                    'type_attr':self.type_attr,
+                    'cat_counter':self.cat_counter},
                     '{}/{}/attr.pkl'.format(self.working_dir,
                                             self.project,
                     ))
 
         self.df_attr.to_pickle('{}/{}/df.gz'.format(self.working_dir,
+                                                self.project))
+        self.df_cat.to_pickle('{}/{}/df_cat.gz'.format(self.working_dir,
                                                 self.project))
         np.save('{}/{}/feats.npy'.format(self.working_dir,
                                             self.project),
@@ -97,6 +112,8 @@ class CBIR:
                                                         self.project))
         self.df_attr = joblib.load('{}/{}/df.gz'.format(self.working_dir,
                                                         self.project))
+        self.df_cat = joblib.load('{}/{}/df_cat.gz'.format(self.working_dir,
+                                                        self.project))
         self.index = nmslib.init(method='hnsw', space='cosinesimil')
         self.index.loadIndex(filename = self.indexfile)
 
@@ -105,6 +122,7 @@ class CBIR:
         self.img_attr = attr['img_attr']
         self.case_attr = attr['case_attr']
         self.type_attr = attr['type_attr']
+        self.cat_counter = attr['cat_counter']
 
         print (f"{self.project} loaded. img_attr:{self.img_attr}, case_attr:{self.case_attr}, type_attr{self.type_attr}")
 
@@ -218,6 +236,9 @@ class CBIR:
             else:
                 imgcats(imgfiles, labels=labels, save=outfile, dpi=dpi)
 
+        max_category = self._weighted_knn(sims, attrs, n=n)
+        print ("The most probable diagnosis: ", max_category)
+
         return imgfiles, pd.DataFrame({'attr':attrs, 'case':patients, 'similarity':sims})
 
     def _nearest_neighbor(self,
@@ -291,12 +312,14 @@ class CBIR:
 
             patients = []
             sims = []
+            cats = []
             num = []
             imgfiles = []
             for res, dist in zip(results, dists):
                 imgfile = self.df_attr[self.img_attr][res]
                 data = self.df_attr.iloc[res,]
                 patient = data[self.case_attr]
+                category = data[self.type_attr]
 
                 if fkey is not None:
                     v = self.df_attr[fkey][res]
@@ -308,14 +331,19 @@ class CBIR:
                     num.append(res)
                     imgfiles.append(imgfile)
                     sims.append(1.0 - dist)
+                    cats.append(category)
             df_each.append(pd.DataFrame({f'patient':patients, f'num_{i}':num, 
-                                         f'sim_{i}':sims, f'imgfile_{i}':imgfiles}))
+                                         f'sim_{i}':sims, f'imgfile_{i}':imgfiles,
+                                        f'category_{i}':cats}))
         df_merged = reduce(lambda left, right: pd.merge(left, right, on=['patient'], how='outer'), df_each)
         df_merged = df_merged.fillna(0)
         
         df_merged['agg_sim'] = df_merged.filter(like='sim_').agg(strategy, axis=1)
         df_merged = df_merged.sort_values('agg_sim', ascending=False)
         df_merged = df_merged.iloc[:min(n, df_merged.shape[0]),:]
+
+        max_category = self._weighted_knn(df_merged['agg_sims'], df_merged['category_0'], n=n)
+        print ("The most probable diagnosis: ", max_category)
 
         qn = len(qimgfiles)
       
@@ -342,9 +370,29 @@ class CBIR:
                         if os.path.exists(imgfile):
                             im_list = np.asarray(Image.open(imgfile)) 
                             plt.imshow(im_list)
-                            plt.title('sim:{}'.format(d[1][f'sim_{j}']))
+                            plt.title('sim:{:.3f}'.format(d[1][f'sim_{j}']))
                     plt.axis('off')
             if save is True:
                 plt.savefig(outfile, dpi=dpi)
             
         return df_merged
+
+        
+    def _weighted_knn(self, 
+                      sims, 
+                      cats, 
+                      n: int = 10):
+        """Distance and 1/N_samples weighted kNN
+
+        Args:
+            sims (np.ndarray): similarity.
+            cats (list): categories.
+            n (int, optional): The number of retrieved images. Defaults to 10.
+        """
+        weights = np.array([1./(1.-s)*1/self.cat_counter[c] for s,c in zip(sims, cats)])
+        weights = weights[:min(n, len(sims))]
+        df = pd.DataFrame({'category':cats,
+                           'weight': weights})
+        max_category = df.groupby('category').sum().idxmax().values[0]
+        return max_category
+
