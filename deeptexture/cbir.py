@@ -200,7 +200,7 @@ class CBIR:
         qdtr_rot = self.dtr_obj.get_dtr(qimgfile, angle = 90)
 
         ## search
-        k = min(self.df_attr.shape[0], n * 50) # the number of retrieved nearest neighbors
+        k = min(self.df_attr.shape[0], n * 500) # the number of retrieved nearest neighbors
         
         results, dists = self._nearest_neighbor(qdtr, qdtr_rot, k)
 
@@ -310,7 +310,7 @@ class CBIR:
             qdtr_rot = self.dtr_obj.get_dtr(qimgfile, angle = 90)
 
             ## search
-            k = min(self.df_attr.shape[0], n * 50) # the number of retrieved nearest neighbors
+            k = min(self.df_attr.shape[0], n * 500) # the number of retrieved nearest neighbors
 
             results, dists = self._nearest_neighbor(qdtr, qdtr_rot, k)
 
