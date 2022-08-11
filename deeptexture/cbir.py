@@ -268,7 +268,9 @@ class CBIR:
                     show_query: bool = True,
                     show: bool = True,
                     fkey: Union[None, str] = None,
-                    fval: Union[str, List[str], None] = None,
+                    fvals: Union[str, List[str], None] = None,
+                    qkey: Union[None, str] = None,
+                    qvals: Union[None, List[str]] = None,
                     dpi: int = 320,
                     save: bool = False,
                     outfile: str = "", 
@@ -284,18 +286,24 @@ class CBIR:
             scale (Union[None, int], optional): Query images are rescaled. Default to None.
             fkey (Union[None, str]): Key for filter in df_attr. Default to None.
             fval (Union[str, List[str], None]): Value(s) for filter. Default to None.
+            qkey (Union[None, str], optional): Key for qattrs. Defaults to None.
+            qvals (Union[None, List[str]], optional): List of attribute for each query. Defaults to None.
             dpi (int, optional): Dots per inch (DPI) of output image. Defaults to 320.
             save (bool, optional): Save the output image to outfile if True. Defaults to False.
             outfile (str, optional): Output image file. Defaults to "".
         Returns:
             pd.DataFrame : Results
         """
-        if type(fval) == str:
-            fval = [fval]
+        if type(fvals) == str:
+            fvals = [fvals]
 
         if fkey is not None:
             if not fkey in self.df_attr.columns:
-                raise Exception("invalid key for filter {}".format(fkey))
+                raise Exception("invalid fkey for filter {}".format(fkey))
+
+        if qkey is not None:
+            if not qkey in self.df_attr.columns:
+                raise Exception("invalid qkey {}".format(qkey))
         
         if save is False:
             outfile = ""
@@ -306,6 +314,8 @@ class CBIR:
 
         df_each = []
         for i, qimgfile in enumerate(qimgfiles):
+            qval = qvals[i] if qvals is not None else None
+
             qdtr = self.dtr_obj.get_dtr(qimgfile)
             qdtr_rot = self.dtr_obj.get_dtr(qimgfile, angle = 90)
 
@@ -327,7 +337,11 @@ class CBIR:
 
                 if fkey is not None:
                     v = self.df_attr[fkey][res]
-                    if not v in fval:
+                    if not v in fvals:
+                        continue
+                if qkey is not None:
+                    v = self.df_attr[qkey][res]
+                    if v != qval:
                         continue
 
                 if not patient in patients: #remove patient-level duplicates
