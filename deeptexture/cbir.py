@@ -346,7 +346,7 @@ class CBIR:
         df_merged = df_merged.sort_values('agg_sim', ascending=False)
         df_merged = df_merged.iloc[:min(n, df_merged.shape[0]),:]
 
-        max_category = self._weighted_knn(df_merged['agg_sims'], df_merged['category_0'], n=n)
+        max_category = self._weighted_knn(df_merged['agg_sim'], df_merged['category_0'], n=n)
         print ("The most probable diagnosis: ", max_category)
 
         qn = len(qimgfiles)
