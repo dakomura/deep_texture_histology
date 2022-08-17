@@ -6,11 +6,19 @@
 Welcome to deeptexture's documentation!
 =======================================
 
+
+.. image:: https://deep-texture-histology.readthedocs.io/en/latest/_static/logo/dtr_logo.jpg
+
 .. toctree::
    :maxdepth: 4
    :caption: Contents:
 
+   installation
+   quickstart
    deeptexture
+   license
+   citation
+   authors
 
 
 Indices and tables
