@@ -1,7 +1,6 @@
 from audioop import add
 from typing import Any, List, Union
 import numpy as np
-#from pycaret import classification as cl
 from sklearn.linear_model import LogisticRegression 
 from sklearn.svm import SVC
 from sklearn import preprocessing as pp
@@ -28,7 +27,7 @@ class ML:
         self.dtrs = dtrs
         self.imgfiles = imgfiles
 
-    def get_lr(self,
+    def fit_eval(self,
                y: Union[list, np.ndarray],
                cases: Union[list, np.ndarray],
                additional_features: np.ndarray = None,
