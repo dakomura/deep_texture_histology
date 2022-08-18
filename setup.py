@@ -25,7 +25,7 @@ INSTALL_REQUIRES = [
     'scikit-learn',
     'seaborn',
     'pandas',
-    
+    'pyrsistent',
 ]
 
 PACKAGES = [
