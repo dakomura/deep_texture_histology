@@ -9,4 +9,5 @@ scikit-learn
 seaborn
 pandas
 opencv-python
+pyrsistent
 deeptexture
