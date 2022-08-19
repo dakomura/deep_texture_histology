@@ -177,8 +177,8 @@ class CBIR:
         Returns:
             np.ndarray: numpy array of color normalized image.
         """
-        qimg = plt.imread(qimgfile)[:,:,:3]
-        rimg = plt.imread(rimgfile)[:,:,:3]
+        qimg = np.array(Image.open(qimgfile).convert('RGB'))
+        rimg = np.array(Image.open(rimgfile).convert('RGB'))
         target_shape = qimg.shape
 
         r = np.var(rimg, axis=(0,1))/np.var(qimg, axis=(0,1))
