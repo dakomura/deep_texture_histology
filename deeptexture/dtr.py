@@ -29,14 +29,14 @@ if gpus:
 class DTR:
     def __init__(self,
                  arch: str = 'vgg',
-                 layer: str = 'block3_conv3', 
+                 layer: str = 'block4_conv3', 
                  dim: int = 1024, 
                  ) -> None:
         """Initializes DTR model and its preprocessing function.
 
         Args:
             arch (str, optional): CNN model. Defaults to 'vgg'.
-            layer (str, optional): A layer in the CNN model. Defaults to 'block3_conv3'.
+            layer (str, optional): A layer in the CNN model. Defaults to 'block4_conv3'.
             dim (int, optional): The output dimension. Defaults to 1024.
         """
         self.arch = arch

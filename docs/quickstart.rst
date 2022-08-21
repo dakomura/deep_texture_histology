@@ -12,7 +12,7 @@ DTR calculation
     import glob
 
     # create DTR object
-    dtr_obj = dt.DTR(arch='vgg', layer='block3_conv3', dim=1024)
+    dtr_obj = dt.DTR(arch='vgg', layer='block4_conv3', dim=1024)
 
     # calculate DTR for one image file
     imgfile = './1.jpg'
