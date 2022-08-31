@@ -163,22 +163,55 @@ class CBIR:
         
         plt.imsave(outfile, norm_img)
         
+    def dtr_colornorm_numpy(self,
+                        qimg: np.ndarray,
+                        scale: Union[None, int] = None,
+    ):
+        """Color normalize qimg to the most similar image based on DTR similarity. 
+
+        Args:
+            qimg (np.ndarray): Query image numpy array.
+            scale (Union[None, int], optional): Query image is rescaled. Default to None.
+        """
+        qdtr = self.dtr_obj.get_dtr(qimg, scale=scale)
+        qdtr_rot = self.dtr_obj.get_dtr(qimg, angle = 90, scale=scale)
+
+        ## search
+        k = 1 # the number of retrieved nearest neighbors
+        
+        results, _ = self._nearest_neighbor(qdtr, qdtr_rot, k)
+        res = results[0]
+
+        rimgfile = self.df_attr[self.img_attr][res]
+
+        norm_img = self._color_transform(rimgfile,
+                                         qimg)
+        
+        return norm_img
 
     def _color_transform(self,
-                         rimgfile: str, 
-                         qimgfile: str,
+                         rimgfile: Union[str, np.ndarray], 
+                         qimgfile: Union[str, np.ndarray],
                          ) -> np.ndarray:
         """Color normalize qimgfile to timgfile
 
         Args:
-            rimgfile (str): reference image file.
-            qimgfile (str): image file to be normalized.
+            rimgfile (Union[str, np.ndarray]): reference image file or numpy array.
+            qimgfile (Union[str, np.ndarray]): image file or numpy array to be normalized.
 
         Returns:
             np.ndarray: numpy array of color normalized image.
         """
-        qimg = np.array(Image.open(qimgfile).convert('RGB'))
-        rimg = np.array(Image.open(rimgfile).convert('RGB'))
+        if type(rimgfile) == str:
+            rimg = np.array(Image.open(rimgfile).convert('RGB'))
+        else:
+            rimg = rimgfile
+        
+        if type(qimgfile) == str:
+            qimg = np.array(Image.open(qimgfile).convert('RGB'))
+        else:
+            qimg = qimgfile
+
         target_shape = qimg.shape
 
         r = np.var(rimg, axis=(0,1))/np.var(qimg, axis=(0,1))
