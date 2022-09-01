@@ -221,7 +221,8 @@ class CBIR:
                             np.full((target_shape[0],target_shape[1]),d[1]), 
                             np.full((target_shape[0],target_shape[1]),d[2])], 
                            axis=-1)
-        new_img_array = ((qimg+d_array)*np.sqrt(r)*255).clip(0,255)
+        #new_img_array = ((qimg+d_array)*np.sqrt(r)*255).clip(0,255)
+        new_img_array = ((qimg+d_array)*np.sqrt(r)).clip(0,255)
         return new_img_array.astype('uint8')
 
     def search(self,
