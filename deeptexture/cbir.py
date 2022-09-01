@@ -134,13 +134,102 @@ class CBIR:
                                       d[1][self.type_attr], 
                                       d[1][self.case_attr]) for d in df_tmp.iterrows()]
         imgcats(df_tmp[self.img_attr], labels=labels)
-            
+
+    def dtr_colornorm(self,
+                  qimgfile: str,
+                  outfile: str,
+                  scale: Union[None, int] = None,
+    ):
+        """Color normalize qimg to the most similar image based on DTR similarity. 
+
+        Args:
+            qimgfile (str): Query image file.
+            outfile (str): output file name.
+            scale (Union[None, int], optional): Query image is rescaled. Default to None.
+        """
+        qdtr = self.dtr_obj.get_dtr(qimgfile, scale=scale)
+        qdtr_rot = self.dtr_obj.get_dtr(qimgfile, angle = 90, scale=scale)
+
+        ## search
+        k = 1 # the number of retrieved nearest neighbors
+        
+        results, _ = self._nearest_neighbor(qdtr, qdtr_rot, k)
+        res = results[0]
+
+        rimgfile = self.df_attr[self.img_attr][res]
+
+        norm_img = self._color_transform(rimgfile,
+                                         qimgfile)
+        
+        plt.imsave(outfile, norm_img)
+        
+    def dtr_colornorm_numpy(self,
+                        qimg: np.ndarray,
+                        scale: Union[None, int] = None,
+    ):
+        """Color normalize qimg to the most similar image based on DTR similarity. 
+
+        Args:
+            qimg (np.ndarray): Query image numpy array.
+            scale (Union[None, int], optional): Query image is rescaled. Default to None.
+        """
+        qdtr = self.dtr_obj.get_dtr(qimg, scale=scale)
+        qdtr_rot = self.dtr_obj.get_dtr(qimg, angle = 90, scale=scale)
+
+        ## search
+        k = 1 # the number of retrieved nearest neighbors
+        
+        results, _ = self._nearest_neighbor(qdtr, qdtr_rot, k)
+        res = results[0]
+
+        rimgfile = self.df_attr[self.img_attr][res]
+
+        norm_img = self._color_transform(rimgfile,
+                                         qimg)
+        
+        return norm_img
+
+    def _color_transform(self,
+                         rimgfile: Union[str, np.ndarray], 
+                         qimgfile: Union[str, np.ndarray],
+                         ) -> np.ndarray:
+        """Color normalize qimgfile to timgfile
+
+        Args:
+            rimgfile (Union[str, np.ndarray]): reference image file or numpy array.
+            qimgfile (Union[str, np.ndarray]): image file or numpy array to be normalized.
+
+        Returns:
+            np.ndarray: numpy array of color normalized image.
+        """
+        if type(rimgfile) == str:
+            rimg = np.array(Image.open(rimgfile).convert('RGB'))
+        else:
+            rimg = rimgfile
+        
+        if type(qimgfile) == str:
+            qimg = np.array(Image.open(qimgfile).convert('RGB'))
+        else:
+            qimg = qimgfile
+
+        target_shape = qimg.shape
+
+        r = np.var(rimg, axis=(0,1))/np.var(qimg, axis=(0,1))
+
+        d = np.median(rimg, axis=(0,1))/(np.sqrt(r)) - np.median(qimg, axis=(0,1))
+        d_array = np.stack([np.full((target_shape[0],target_shape[1]),d[0]), 
+                            np.full((target_shape[0],target_shape[1]),d[1]), 
+                            np.full((target_shape[0],target_shape[1]),d[2])], 
+                           axis=-1)
+        new_img_array = ((qimg+d_array)*np.sqrt(r)*255).clip(0,255)
+        return new_img_array.astype('uint8')
 
     def search(self,
                qimgfile: str,
                n: int = 50,
                show_query: bool = True,
                show: bool = True,
+               scale: Union[None, int] = None,
                fkey: Union[None, str] = None,
                fval: Union[str, List[str], None] = None,
                dpi: int = 320, 
@@ -174,8 +263,8 @@ class CBIR:
             outfile = ""
         
 
-        qdtr = self.dtr_obj.get_dtr(qimgfile)
-        qdtr_rot = self.dtr_obj.get_dtr(qimgfile, angle = 90)
+        qdtr = self.dtr_obj.get_dtr(qimgfile, scale=scale)
+        qdtr_rot = self.dtr_obj.get_dtr(qimgfile, angle = 90, scale=scale)
 
         ## search
         k = min(self.df_attr.shape[0], n * 50) # the number of retrieved nearest neighbors
@@ -242,6 +331,7 @@ class CBIR:
                     n: int = 50,
                     show_query: bool = True,
                     show: bool = True,
+                    scale: Union[None, int] = None,
                     fkey: Union[None, str] = None,
                     fval: Union[str, List[str], None] = None,
                     dpi: int = 320,
@@ -281,8 +371,8 @@ class CBIR:
 
         df_each = []
         for i, qimgfile in enumerate(qimgfiles):
-            qdtr = self.dtr_obj.get_dtr(qimgfile)
-            qdtr_rot = self.dtr_obj.get_dtr(qimgfile, angle = 90)
+            qdtr = self.dtr_obj.get_dtr(qimgfile, scale=scale)
+            qdtr_rot = self.dtr_obj.get_dtr(qimgfile, angle = 90, scale=scale)
 
             ## search
             k = min(self.df_attr.shape[0], n * 50) # the number of retrieved nearest neighbors
