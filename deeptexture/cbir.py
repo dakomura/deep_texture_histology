@@ -335,6 +335,8 @@ class CBIR:
                     scale: Union[None, int] = None,
                     fkey: Union[None, str] = None,
                     fval: Union[str, List[str], None] = None,
+                    qkey: Union[None, str] = None,
+                    qvals: Union[None, List[str]] = None,
                     dpi: int = 320,
                     save: bool = False,
                     outfile: str = "", 
@@ -350,6 +352,8 @@ class CBIR:
             scale (Union[None, int], optional): Query images are rescaled. Default to None.
             fkey (Union[None, str]): Key for filter in df_attr. Default to None.
             fval (Union[str, List[str], None]): Value(s) for filter. Default to None.
+            qkey (Union[None, str], optional): Key for qattrs. Defaults to None.
+            qvals (Union[None, List[str]], optional): List of attribute for each query. Defaults to None.
             dpi (int, optional): Dots per inch (DPI) of output image. Defaults to 320.
             save (bool, optional): Save the output image to outfile if True. Defaults to False.
             outfile (str, optional): Output image file. Defaults to "".
@@ -362,6 +366,10 @@ class CBIR:
         if fkey is not None:
             if not fkey in self.df_attr.columns:
                 raise Exception("invalid key for filter {}".format(fkey))
+
+        if qkey is not None:
+            if not qkey in self.df_attr.columns:
+                raise Exception("invalid qkey {}".format(qkey))
         
         if save is False:
             outfile = ""
@@ -372,11 +380,13 @@ class CBIR:
 
         df_each = []
         for i, qimgfile in enumerate(qimgfiles):
+            qval = qvals[i] if qvals is not None else None
+
             qdtr = self.dtr_obj.get_dtr(qimgfile, scale=scale)
             qdtr_rot = self.dtr_obj.get_dtr(qimgfile, angle = 90, scale=scale)
 
             ## search
-            k = min(self.df_attr.shape[0], n * 50) # the number of retrieved nearest neighbors
+            k = min(self.df_attr.shape[0], n * 1000) # the number of retrieved nearest neighbors
 
             results, dists = self._nearest_neighbor(qdtr, qdtr_rot, k)
 
@@ -384,14 +394,20 @@ class CBIR:
             sims = []
             num = []
             imgfiles = []
+            cats = []
             for res, dist in zip(results, dists):
                 imgfile = self.df_attr[self.img_attr][res]
                 data = self.df_attr.iloc[res,]
                 patient = data[self.case_attr]
+                category = data[self.type_attr]
 
                 if fkey is not None:
                     v = self.df_attr[fkey][res]
                     if not v in fval:
+                        continue
+                if qkey is not None:
+                    v = self.df_attr[qkey][res]
+                    if v != qval:
                         continue
 
                 if not patient in patients: #remove patient-level duplicates
@@ -399,14 +415,20 @@ class CBIR:
                     num.append(res)
                     imgfiles.append(imgfile)
                     sims.append(1.0 - dist)
+                    cats.append(category)
+                    
             df_each.append(pd.DataFrame({f'patient':patients, f'num_{i}':num, 
-                                         f'sim_{i}':sims, f'imgfile_{i}':imgfiles}))
+                                         f'sim_{i}':sims, f'imgfile_{i}':imgfiles,
+                                         f'category_{i}':cats}))
         df_merged = reduce(lambda left, right: pd.merge(left, right, on=['patient'], how='outer'), df_each)
         df_merged = df_merged.fillna(0)
         
         df_merged['agg_sim'] = df_merged.filter(like='sim_').agg(strategy, axis=1)
         df_merged = df_merged.sort_values('agg_sim', ascending=False)
         df_merged = df_merged.iloc[:min(n, df_merged.shape[0]),:]
+
+        max_category = self._weighted_knn(df_merged['agg_sim'], df_merged['category_0'], n=n)
+        print ("The most probable diagnosis: ", max_category)
 
         qn = len(qimgfiles)
       
