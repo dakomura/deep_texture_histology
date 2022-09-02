@@ -332,6 +332,7 @@ class CBIR:
                     n: int = 50,
                     show_query: bool = True,
                     show: bool = True,
+                    show_keys: Union[str, List[str]] = None,
                     scale: Union[None, int] = None,
                     fkey: Union[None, str] = None,
                     fval: Union[str, List[str], None] = None,
@@ -348,6 +349,7 @@ class CBIR:
             strategy (str, optional): Search strategy. In 'max', the similarity for the case is cacluated based on the maximum similarity among queries. In 'mean', the similarity for the case is cacluated based on the average similarity among queries. 
             show_query (bool, optional): Show query images. Defaults to True.
             show (bool, optional): Show retrieved images. Defaults to True.
+            show_keys(Union[str, List[str]], optional): Attribute(s) shown in the retrieved results. Defaults to None.
             n (int, optional): The number of retrieved images. Defaults to 50.
             scale (Union[None, int], optional): Query images are rescaled. Default to None.
             fkey (Union[None, str]): Key for filter in df_attr. Default to None.
@@ -362,6 +364,14 @@ class CBIR:
         """
         if type(fval) == str:
             fval = [fval]
+
+        if type(show_keys) == str:
+            show_keys = [show_keys]
+
+        if show_keys is not None:
+            for sk in show_keys:
+                if not sk in self.df_attr.columns:
+                    raise Exception("invalid key for show_keys {}".format(sk))
 
         if fkey is not None:
             if not fkey in self.df_attr.columns:
@@ -419,7 +429,7 @@ class CBIR:
                     
             df_each.append(pd.DataFrame({f'patient':patients, f'num_{i}':num, 
                                          f'sim_{i}':sims, f'imgfile_{i}':imgfiles,
-                                         f'category_{i}':cats}))
+                                         f'category_{i}':cats,}))
         df_merged = reduce(lambda left, right: pd.merge(left, right, on=['patient'], how='outer'), df_each)
         df_merged = df_merged.fillna(0)
         
@@ -455,7 +465,10 @@ class CBIR:
                         if os.path.exists(imgfile):
                             im_list = np.asarray(Image.open(imgfile)) 
                             plt.imshow(im_list)
-                            plt.title('sim:{}'.format(d[1][f'sim_{j}']))
+                            title = 'sim:{}'.format(d[1][f'sim_{j}']) 
+                            for sk in show_keys:
+                                title += "\n" + self.df_attr[sk][d[1][f'num_{j}']]
+                            plt.title(title)
                     plt.axis('off')
             if save is True:
                 plt.savefig(outfile, dpi=dpi)
