@@ -176,7 +176,6 @@ def plt_dtr_attr(X: np.ndarray,
         if X.shape[1] == 2:
             raise Exception("Show medoid is available only when DTRs are given.")
         #extract medoid for each case
-        u_cases = list(set(cases))
         medoid_dict = get_medoid(X, cases)
     else:
         medoid_dict = {}
@@ -198,8 +197,8 @@ def plt_dtr_attr(X: np.ndarray,
         fig = px.scatter(df, x='x1', y='x2',
                         color='attr',
                         size='size',
-                        hover_name='attr',
-                        hover_data = cases,
+                        hover_name='attributes',
+                        hover_data = ['attr','medoid'],
                         text=text,
                         range_x = [np.min(X_emb[:,0])-width1, np.max(X_emb[:,0])+width1],
                         range_y = [np.min(X_emb[:,1])-height1, np.max(X_emb[:,1])+height1],
