@@ -512,7 +512,7 @@ class CBIR:
         df = pd.DataFrame({'category':cats,
                            'weight': weights})
         df = df.dropna(subset=['category'])
-        df = df.iloc[df['category'] != 0, :]
+        df = df[df['category'] != 0]
         print (df)
         max_category = df.groupby('category').sum().idxmax().values[0]
         return max_category
