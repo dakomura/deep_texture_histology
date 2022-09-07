@@ -506,7 +506,7 @@ class CBIR:
             cats (list): categories.
             n (int, optional): The number of retrieved images. Defaults to 10.
         """
-        weights = np.array([1./(1.01-s)/self.cat_counter[c] for s,c in zip(sims, cats)])
+        weights = np.array([1./(1.01-s)/(self.cat_counter[c]+1) for s,c in zip(sims, cats)])
         weights = weights[:min(n, len(sims))]
         df = pd.DataFrame({'category':cats,
                            'weight': weights})
