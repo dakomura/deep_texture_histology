@@ -510,5 +510,6 @@ class CBIR:
         weights = weights[:min(n, len(sims))]
         df = pd.DataFrame({'category':cats,
                            'weight': weights})
+        df = df.dropna(subset=['category'])
         max_category = df.groupby('category').sum().idxmax().values[0]
         return 
