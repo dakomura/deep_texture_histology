@@ -103,7 +103,7 @@ class ML:
                                     index=labels,
                                     columns=labels)
             if show:
-                g=sns.heatmap(conf_mat, square=True, cbar=True, annot=True, cmap='Blues')
+                g=sns.heatmap(conf_mat, square=True, cbar=True, annot=True, cmap='Blues', fmt=".1f")
                 g.set_xticklabels(g.get_xticklabels(), rotation=90, horizontalalignment='right')
                 g.set_yticklabels(g.get_yticklabels(), rotation=0, horizontalalignment='right')
                 plt.xlabel("Prediction", fontsize=13, rotation=0)

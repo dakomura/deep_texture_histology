@@ -474,3 +474,20 @@ class CBIR:
                 plt.savefig(outfile, dpi=dpi)
             
         return df_merged
+
+    def _weighted_knn(self, 
+                      sims, 
+                      cats, 
+                      n: int = 10):
+        """Distance and 1/N_samples weighted kNN
+        Args:
+            sims (np.ndarray): similarity.
+            cats (list): categories.
+            n (int, optional): The number of retrieved images. Defaults to 10.
+        """
+        weights = np.array([1./(1.01-s)/self.cat_counter[c] for s,c in zip(sims, cats)])
+        weights = weights[:min(n, len(sims))]
+        df = pd.DataFrame({'category':cats,
+                           'weight': weights})
+        max_category = df.groupby('category').sum().idxmax().values[0]
+        return 
