@@ -39,6 +39,7 @@ class CBIR:
                     img_attr: str = "imgfile",
                     case_attr: str = "patient",
                     type_attr: str = "tissue",
+                    df_cat: Any = None,
                     save: bool = True,
                     ) -> None:
         """Create CBIR database.
@@ -49,6 +50,7 @@ class CBIR:
             img_attr (str, optional): Column name of image files in df_attr. Defaults to "imgfile".
             case_attr (str, optional): Column name of case ID in df_attr. Defaults to "patient".
             type_attr (str, optional): Column name of additional attribute to show in df_attr. Defaults to "tissue".
+            df_cat (Any): Pandas dataframe containing information of type_attr (e.g. differential diagnosis, text). Defaults to None.
             save (bool, optional): Saves database in the project direcotry if True. Defaults to True.
         """
 
@@ -56,6 +58,7 @@ class CBIR:
         self.img_attr = img_attr
         self.case_attr = case_attr
         self.type_attr = type_attr
+        self.df_cat = df_cat
 
         imgfiles = df_attr[img_attr]
 
@@ -109,6 +112,11 @@ class CBIR:
                                                         self.project))
         self.df_attr = joblib.load('{}/{}/df.gz'.format(self.working_dir,
                                                         self.project))
+        try:
+            self.df_cat = joblib.load('{}/{}/df_cat.gz'.format(self.working_dir,
+                                                            self.project))
+        except:
+            self.df_cat = None
         self.index = nmslib.init(method='hnsw', space='cosinesimil')
         self.index.loadIndex(filename = self.indexfile)
 
@@ -117,6 +125,7 @@ class CBIR:
         self.img_attr = attr['img_attr']
         self.case_attr = attr['case_attr']
         self.type_attr = attr['type_attr']
+        self.cat_counter = attr['cat_counter']
 
         print (f"{self.project} loaded. img_attr:{self.img_attr}, case_attr:{self.case_attr}, type_attr{self.type_attr}")
 
