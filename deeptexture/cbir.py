@@ -487,8 +487,9 @@ class CBIR:
                             im_list = np.asarray(Image.open(imgfile)) 
                             plt.imshow(im_list)
                             title = 'sim:{}'.format(d[1][f'sim_{j}']) 
-                            for sk in show_keys:
-                                title += "\n" + self.df_attr[sk][d[1][f'num_{j}']]
+                            if show_keys is not None:
+                                for sk in show_keys:
+                                    title += "\n" + self.df_attr[sk][d[1][f'num_{j}']]
                             plt.title(title)
                     plt.axis('off')
             if save is True:
@@ -511,5 +512,6 @@ class CBIR:
         df = pd.DataFrame({'category':cats,
                            'weight': weights})
         df = df.dropna(subset=['category'])
+        print (df)
         max_category = df.groupby('category').sum().idxmax().values[0]
-        return 
+        return max_category
