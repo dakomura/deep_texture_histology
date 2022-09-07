@@ -5,6 +5,7 @@ import nmslib
 import joblib
 import numpy as np
 import matplotlib.pyplot as plt
+import collections
 import pandas as pd
 from PIL import Image
 from .dtr import *
@@ -69,6 +70,13 @@ class CBIR:
         self.index.addDataPointBatch(self.dtrs)
         self.index.createIndex(index_params = params)
 
+        # calculated the number of cases in each category
+        cases = np.array(df_attr[case_attr])
+        ucases = np.unique(cases)
+        types = np.array(df_attr[type_attr])
+        cats = [types[np.where(cases == case)[0][0]] for case in ucases]
+        self.cat_counter = collections.Counter(cats)
+
         if save:
             self.save_db()
 
@@ -79,13 +87,17 @@ class CBIR:
 
         joblib.dump({'img_attr':self.img_attr,
                     'case_attr':self.case_attr,
-                    'type_attr':self.type_attr},
+                    'type_attr':self.type_attr,
+                    'cat_counter':self.cat_counter},
                     '{}/{}/attr.pkl'.format(self.working_dir,
                                             self.project,
                     ))
 
         self.df_attr.to_pickle('{}/{}/df.gz'.format(self.working_dir,
                                                 self.project))
+        if self.df_cat is not None:
+            self.df_cat.to_pickle('{}/{}/df_cat.gz'.format(self.working_dir,
+                                                    self.project))
         np.save('{}/{}/feats.npy'.format(self.working_dir,
                                             self.project),
                 self.dtrs)
