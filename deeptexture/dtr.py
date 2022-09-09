@@ -88,11 +88,11 @@ class DTR:
             h, w = x.size
             x2 = x.resize((int(h*0.25), int(w*0.25)))
             x2 = self.prep(x2).unsqueeze(0).to('cuda')
-            x2 = x2.permute(0,3,1,2)
+            #x2 = x2.permute(0,3,1,2)
 
         # To Tensor (batch, channel, H, W)
         x = self.prep(x).unsqueeze(0).to('cuda')
-        x = x.permute(0,3,1,2)
+        #x = x.permute(0,3,1,2)
 
         if angle is not None:
             if type(angle) == int:
