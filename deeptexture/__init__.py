@@ -4,4 +4,4 @@ from .cbir import *
 from .ml import *
 from .utils import *
 
-__version__ = '0.3.6t'
+__version__ = '0.3.7t'

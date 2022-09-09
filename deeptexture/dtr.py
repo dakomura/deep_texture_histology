@@ -2,7 +2,6 @@ from typing import Any, List, Tuple, Union
 from PIL import Image
 from pyrsistent import mutant
 import numpy as np
-import cv2
 import pandas as pd
 from .utils import *
 
@@ -81,6 +80,8 @@ class DTR:
         elif scale is not None:
             h, w = ximg.size
             x = ximg.resize((int(h*scale), int(w*scale)))
+        else:
+            x = ximg
 
         if multi_scale:
             #1/4 scale
