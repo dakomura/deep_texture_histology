@@ -4,33 +4,20 @@ from pyrsistent import mutant
 import numpy as np
 import cv2
 import pandas as pd
-import tensorflow as tf
-from tensorflow.keras import models, preprocessing
-from tensorflow.keras.applications import resnet50, vgg16, mobilenet_v2, inception_v3, nasnet, densenet, inception_resnet_v2
-
 from .utils import *
 
-#efficientnet is optional
-import importlib
-eff_spec = importlib.util.find_spec("efficientnet")
-if eff_spec is not None:
-    import efficientnet.tfkeras
+import timm 
+from timm.data import resolve_data_config
+from timm.data.transforms_factory import create_transform
 
-gpus = tf.config.experimental.list_physical_devices('GPU')
-if gpus:
-    try:
-        tf.config.experimental.set_virtual_device_configuration(gpus[0],
-                                                                [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=4096)])
-        logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-    except RuntimeError as e:
-        print(e)
+import torch.nn.functional as F
+from torchvision import transforms
+
 
 class DTR:
     def __init__(self,
-                 arch: str = 'vgg',
-                 layer: str = 'block4_conv3', 
-                 dim: int = 1024, 
+                 arch: str = 'resnetrs350',
+                 layer: int = 2, 
                  ) -> None:
         """Initializes DTR model and its preprocessing function.
 
@@ -41,74 +28,25 @@ class DTR:
         """
         self.arch = arch
         self.layer = layer
-        self.dim = dim
-
-        self.archs_dict = {
-            'mobilenet': mobilenet_v2.MobileNetV2,
-            'vgg': vgg16.VGG16,
-            'resnet50': resnet50.ResNet50,
-            'inceptionv3': inception_v3.InceptionV3,
-            'nasnet': nasnet.NASNetLarge,
-            'densenet': densenet.DenseNet201,
-            'inceptionresnetv2': inception_resnet_v2.InceptionResNetV2,
-        }
-        self.prep_dict = {
-            'mobilenet': mobilenet_v2,
-            'vgg': vgg16,
-            'resnet50': resnet50,
-            'inceptionv3': inception_v3,
-            'nasnet': nasnet,
-            'densenet': densenet,
-            'inceptionresnetv2': inception_resnet_v2,
-        }
-
-        if eff_spec is not None:
-           self.archs_dict['efficientnet'] = efficientnet.tfkeras.EfficientNetB7
-           self.prep_dict['efficientnet'] = efficientnet.tfkeras 
 
         print(f"arch:{arch}")
         print(f"layer:{layer}")
-        print(f"dim:{dim}")
 
         self._create_model()
 
         # preprocess function
-        self.prep = self.prep_dict[arch].preprocess_input
+        self.config = resolve_data_config({}, model=self.model)
+        self.prep = create_transform(**self.config)
 
 
     def _create_model(self) -> None:
-        conv_base = self.archs_dict[self.arch](
-            weights = "imagenet",
-            include_top = None,
-            input_shape = (None, None, 3))
-
-        x1 = conv_base.get_layer(self.layer).output
-        _,_,_,c = x1.shape
-
-        rng = np.random.default_rng(2022)
-
-        r1 = rng.uniform(0,1,(1,c,self.dim))
-        nfilter1 = np.where(r1>0.5,1,-1)
-        filter1 = tf.constant(nfilter1,dtype=float)
-
-        r2 = rng.uniform(0,1,(1,c,self.dim))
-        nfilter2 = np.where(r2>0.5,1,-1)
-        filter2 = tf.constant(nfilter2,dtype=float)
-
-        x2 = tf.keras.layers.Reshape((-1,c))(x1)
-
-        y1 = tf.nn.conv1d(x2,filter1,stride=1,padding='SAME',data_format='NWC')
-        y2 = tf.nn.conv1d(x2,filter2,stride=1,padding='SAME',data_format='NWC')
-
-        y3 = tf.keras.layers.Reshape((-1,self.dim))(y1)
-        y4 = tf.keras.layers.Reshape((-1,self.dim))(y2)
-
-        z1 = tf.keras.layers.Multiply()([y3,y4])
-        z2 = tf.keras.layers.GlobalAveragePooling1D()(z1)
-        z3 = tf.math.sqrt(tf.math.abs(z2))*tf.math.sign(z2)
-        z4 = tf.math.l2_normalize(z3)
-
-        self.cbp = models.Model(conv_base.input,z4)
+        self.model = timm.create_model(
+            self.arch,
+            features_only=True,
+            pretrained=True,
+        ).to('cuda')
+        self.model.eval()
+        self.layers = len(self.model.feature_info.channels())
 
     def get_dtr(self, 
                 img: Any, 
@@ -146,12 +84,18 @@ class DTR:
         if multi_scale:
             #1/4 scale
             x2 = cv2.resize(x, dize=None, fx=0.25, fy=0.25)
+            x2 = self.prep(x2).unsqueeze(0).to('cuda')
+            x2 = x2.permute(0,3,1,2)
+
+        # To Tensor (batch, channel, H, W)
+        x = self.prep(x).unsqueeze(0).to('cuda')
+        x = x.permute(0,3,1,2)
 
         if angle is not None:
             if type(angle) == int:
-                x = preprocessing.image.apply_affine_transform(x, theta = angle)
+                x = transforms.functional.rotate(x, angle = angle)
                 if multi_scale: 
-                    x2 = preprocessing.image.apply_affine_transform(x2, theta = angle)
+                    x2 = transforms.functional.rotate(x2, angle = angle)
             elif type(angle) == list:
                 dtrs = np.vstack([self.get_dtr(img, theta, size, scale, multi_scale) for theta in angle])
                 dtr_mean = np.mean(dtrs, axis=0)
@@ -159,18 +103,22 @@ class DTR:
             else:
                 raise Exception(f"invalid data type in angle {angle}")
                 
-
-        x = np.expand_dims(x, axis=0)
-        x = self.prep(x)
-        dtr = np.array(self.cbp([x])[0])
+        dtr = self.forward(x)
 
         if multi_scale:
-            x2 = np.expand_dims(x2, axis=0)
-            x2 = self.prep(x2)
-            dtr2 = np.array(self.cbp([x2])[0])
+            dtr2 = self.forward(x2)
             dtr = np.concatenate([dtr, dtr2])
 
         return dtr
+
+    def forward(self, x):
+        output = self.model(x)[self.layer]
+        t_torch = F.avg_pool2d(output, kernel_size=output.shape[-1]) 
+        dtr = t_torch.squeeze().to('cpu').detach().clone().numpy()
+        dtr = dtr / np.linalg.norm(dtr, ord=2) #L2-normalize
+
+        return dtr
+        
 
     def sim(self, 
             x: np.ndarray,
