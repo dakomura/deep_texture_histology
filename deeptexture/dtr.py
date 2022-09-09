@@ -68,22 +68,24 @@ class DTR:
             np.ndarray: DTR for the image
         """
         if type(img) == str:
-            img = Image.open(img).convert("RGB")
-            x = np.array(img)
+            # Filename
+            ximg = Image.open(img).convert("RGB")
         elif not type(img) == np.ndarray:
-            x = np.array(img)
-        else:
-            x = img
+            # Image
+            ximg = img
+        else: #numpy
+            ximg = Image.fromarray(img)
 
         if size is not None:
-            x = cv2.resize(x, dsize=[size, size])
+            x = ximg.resize((size, size))
         elif scale is not None:
-            h, w, _ = x.shape
-            x = cv2.resize(x, dsize=[int(h*scale), int(w*scale)])
+            h, w = ximg.size
+            x = ximg.resize((int(h*scale), int(w*scale)))
 
         if multi_scale:
             #1/4 scale
-            x2 = cv2.resize(x, dize=None, fx=0.25, fy=0.25)
+            h, w = x.size
+            x2 = x.resize((int(h*0.25), int(w*0.25)))
             x2 = self.prep(x2).unsqueeze(0).to('cuda')
             x2 = x2.permute(0,3,1,2)
 
@@ -97,7 +99,7 @@ class DTR:
                 if multi_scale: 
                     x2 = transforms.functional.rotate(x2, angle = angle)
             elif type(angle) == list:
-                dtrs = np.vstack([self.get_dtr(img, theta, size, scale, multi_scale) for theta in angle])
+                dtrs = np.vstack([self.get_dtr(ximg, theta, size, scale, multi_scale) for theta in angle])
                 dtr_mean = np.mean(dtrs, axis=0)
                 return dtr_mean / np.linalg.norm(dtr_mean, ord=2) #L2-normalize
             else:
