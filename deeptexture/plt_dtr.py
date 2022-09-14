@@ -209,7 +209,8 @@ def plt_dtr_attr(X: np.ndarray,
             fig.update_yaxes(visible=False)
         if save:
             print ("dpi is ignored in plotly mode.")
-            fig.write_image(outfile)
+            fig.write_html(outfile)
+        return df, fig
 
     else:
         plt.clf()
