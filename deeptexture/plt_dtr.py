@@ -210,6 +210,7 @@ def plt_dtr_attr(X: np.ndarray,
         if save:
             print ("dpi is ignored in plotly mode.")
             fig.write_html(outfile)
+        fig.show(renderer='iframe')
         return df, fig
 
     else:
