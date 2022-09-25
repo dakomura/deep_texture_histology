@@ -95,9 +95,20 @@ class ML:
 
         model.fit(X_train, y_train) 
         self.model = model
+
+        self.ml_data = {
+            'train_case': train_cases,
+            'test_case':  test_cases,
+            'X_train':    X_train,
+            'X_test':     X_test,
+            'y_train':    y_train,
+            'y_test':     y_test,
+            
+        }
         
         if mode == 'multi':
-            y_pred = model.predict(X_test)
+            y_pred = self.model.predict(X_test)
+            self.ml_data['y_pred'] = y_pred
             conf_mat = confusion_matrix(y_test, y_pred, labels=labels)
             conf_mat = pd.DataFrame(data=conf_mat,
                                     index=labels,
@@ -111,9 +122,11 @@ class ML:
 
             return conf_mat
         else:
-            probs = model.predict_proba(X_test)
+            probs = self.model.predict_proba(X_test)
             preds = probs[:,1]
-            fpr, tpr, _ = metrics.roc_curve(y_test, preds)
+            self.ml_data['y_pred'] = preds
+            fpr, tpr, _ = metrics.roc_curve(y_test, preds, 
+                                            pos_label = self.model.classes_)
             roc_auc = metrics.auc(fpr, tpr)
 
             if show:
@@ -129,6 +142,22 @@ class ML:
 
             return roc_auc
 
+    def get_model(self,
+                  ) -> Any:
+        """return the trained supervised model.
+
+        Returns:
+            Any: the trained model.
+        """
+        return self.model
+
+    def get_result(self,
+                   ) -> Any:
+        """return the training and test data and prediction.
+
+        Returns:
+            Any: Dictionary containing train/test case/X/y and the prediction.
+        """
 
     def clustering(self,
                    method: str = 'bayes_gmm',
