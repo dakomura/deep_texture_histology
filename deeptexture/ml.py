@@ -122,11 +122,12 @@ class ML:
 
             return conf_mat
         else:
+            pos_index = 1
             probs = self.model.predict_proba(X_test)
-            preds = probs[:,1]
+            preds = probs[:,pos_index]
             self.ml_data['y_pred'] = preds
             fpr, tpr, _ = metrics.roc_curve(y_test, preds, 
-                                            pos_label = self.model.classes_)
+                                            pos_label = self.model.classes_[pos_index])
             roc_auc = metrics.auc(fpr, tpr)
 
             if show:
