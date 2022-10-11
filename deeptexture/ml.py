@@ -43,7 +43,7 @@ class ML:
             additional_features (np.ndarray, optional): Additional features used for the classification. It MUST be the numerical arrays. If it is a categorical variable, please use categorical encoders. Defaults to None.
             min_samples (int, optional): Minimum number of cases analyzed in a target. Targets below the value will be removed. Defaults to 5.
             show (bool, optional): Show confusion matrix or ROC curve. Defaults to True.
-            test_size (float, optional): If float, should be between 0.0 and 1.0 and represent the proportion of the dataset to include in the test split. If int, represents the absolute number of test samples. Defaults to 0.25.
+            test_size (Union[int, float], optional): If float, should be between 0.0 and 1.0 and represent the proportion of the dataset to include in the test split. If int, represents the absolute number of test samples. Defaults to 0.25.
         Returns:
             Any: AUROC (for binary classification) or confusion matrix (for multiclass classification).
         """
