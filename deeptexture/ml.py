@@ -33,6 +33,7 @@ class ML:
                additional_features: np.ndarray = None,
                min_samples: int = 5,
                show: bool = True,
+               test_size: Union[float, int] = 0.25,
                ) -> Any:
         """Logistic regression analysis.
 
@@ -42,6 +43,7 @@ class ML:
             additional_features (np.ndarray, optional): Additional features used for the classification. It MUST be the numerical arrays. If it is a categorical variable, please use categorical encoders. Defaults to None.
             min_samples (int, optional): Minimum number of cases analyzed in a target. Targets below the value will be removed. Defaults to 5.
             show (bool, optional): Show confusion matrix or ROC curve. Defaults to True.
+            test_size (float, optional): If float, should be between 0.0 and 1.0 and represent the proportion of the dataset to include in the test split. If int, represents the absolute number of test samples. Defaults to 0.25.
         Returns:
             Any: AUROC (for binary classification) or confusion matrix (for multiclass classification).
         """
@@ -84,7 +86,7 @@ class ML:
         u_cases = np.unique(cases)
         y_ucases = [y[cases==c][0] for c in u_cases] 
         train_cases, test_cases = train_test_split(u_cases, 
-                                                   test_size=0.25,
+                                                   test_size=test_size,
                                                    stratify=y_ucases,
                                                    random_state=0) 
         X_train = np.vstack([x for i, x in enumerate(dtrs2) if cases[i] in train_cases])
