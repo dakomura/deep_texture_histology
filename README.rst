@@ -2,12 +2,10 @@
 deep_texture_histology : Tools for deep texture representation for histology images.
 ***************************************************************************************
 
-.. image:: https://github.com/dakomura/deep_texture_histology/blob/main/docs/_static/logo/dtr_logo.jpg
-
 Overview
 ==============
 deep_texture_representation is a python library to calculate deep texture representations (DTRs) for histology images (Cell Reports, 2022).
-Fucntions for plotting the distribution of DTRs and content-based image retrieval are also implemented.
+Fucntions for plotting the distribution of DTRs, content-based image retrieval, and supervised learning are also implemented.
 
 Installation
 =========================
@@ -38,8 +36,9 @@ Recommended Environment
 =======================
 
 * OS
-   * Linux
-   * Mac
+   * Linux (both CPU and GPU version)
+   * Mac (both CPU and GPU version for M1 and M2 chip)
+   * Windows (CPU version only)
 
 License
 =======
@@ -60,3 +59,8 @@ If you use this library for your research, please cite:
     "*Universal encoding of pan-cancer histology by deep texture representations.*"
     
     Cell Reports 38, 110424,2022. https://doi.org/10.1016/j.celrep.2022.110424
+
+See Also
+========
+
+`Documentation <https://deep-texture-histology.readthedocs.io/en/latest/>`_
