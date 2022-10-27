@@ -12,36 +12,36 @@ DTR calculation
     import glob
 
     # create DTR object
-    dtr_obj = dt.DTR(arch='vgg', layer='block3_conv3', dim=1024)
+    dtr_obj = dt.DTR(arch='vgg', layer='block4_conv3', dim=1024)
 
     # calculate DTR for one image file
-    imgfile = './1.jpg'
+    imgfile = './example/0KNpXTsaNix2T6.jpg'
     dtr = dtr_obj.get_dtr(imgfile)
     
-    # calculate DTR for one rotated image file
-    imgfile = './1.jpg'
+    # calculate mean DTR for unrotated and rotated image file
+    imgfile = './example/0KNpXTsaNix2T6.jpg'
     dtr = dtr_obj.get_dtr(imgfile)
-    dtr_rot = dtr_obj.get_dtr(imgfile, angle=90)
+    dtr_rot = dtr_obj.get_dtr(imgfile, angle=[0, 90])
     
     # calculate DTR for one image object
-    imgfile = './1.jpg'
+    imgfile = './example/0KNpXTsaNix2T6.jpg'
     dtr = dtr_obj.get_dtr(imgfile)
     img = Image.open(imgfile)
     dtr = dtr_obj.get_dtr(img)
 
     # calculate DTR for one image object
-    imgfile = './1.jpg'
+    imgfile = './example/0KNpXTsaNix2T6.jpg'
     dtr = dtr_obj.get_dtr(imgfile)
     img_np = np.array(Image.open(imgfile))
     dtr = dtr_obj.get_dtr(img_np)
 
     # calculate DTRs for multiple images
-    imgfiles = glob.glob("./*.jpg")
+    imgfiles = glob.glob("./example/*.jpg")
     dtrs = dtr_obj.get_dtr_multifiles(imgfiles)
 
-    # calculate DTRs for multiple rotated images
-    imgfiles = glob.glob("./*.jpg")
-    dtrs = dtr_obj.get_dtr_multifiles(imgfiles, angle=90)
+    # calculate DTRs for multiple unrotated and rotated images
+    imgfiles = glob.glob("./example/*.jpg")
+    dtrs = dtr_obj.get_dtr_multifiles(imgfiles, angle=[0, 90])
 
 Plot DTR distribution
 ---------------------
@@ -52,13 +52,13 @@ Plot DTR distribution
 
         from deeptexture import plt_dtr
 
-        imgfiles = ['./01.jpg',
-                    './02.jpg',
-                    './03.jpg',
-                    './04.jpg',]
+        imgfiles = ['./example/0KNpXTsaNix2T6.jpg',
+                    './example/0zpw5BpfoiRX9m.jpg',
+                    './example/11303cFBFubBwG.jpg',
+                    './example/19HDnAR7OBcA1d.jpg',]
         text = ['01','02','03','04',]
 
-        dtrs = dtr_obj.get_dtr_multifiles(imgfiles, angle=90)
+        dtrs = dtr_obj.get_dtr_multifiles(imgfiles, angle=[0, 90])
 
         #Principal component analysis is applied to DTRs and PC1 and PC2 is shown.
         X_emb = plt_dtr.plt_dtr_image(dtrs, imgfiles, method="pca", x1=1, x2=2, text=text)
@@ -72,17 +72,17 @@ Plot DTR distribution
 
         from deeptexture import plt_dtr
 
-        imgfiles = ['./01.jpg',
-                    './02.jpg',
-                    './03.jpg',
-                    './04.jpg',]
+        imgfiles = ['./example/0KNpXTsaNix2T6.jpg',
+                    './example/0zpw5BpfoiRX9m.jpg',
+                    './example/11303cFBFubBwG.jpg',
+                    './example/19HDnAR7OBcA1d.jpg',]
         attr =  ['cancer',
                 'cancer',
                 'normal',
                 'normal',]
         text = ['01','02','03','04',]
 
-        dtrs = dtr_obj.get_dtr_multifiles(imgfiles, angle=90)
+        dtrs = dtr_obj.get_dtr_multifiles(imgfiles, angle=[0, 90])
 
         #Principal component analysis is applied to DTRs and PC1 and PC2 is shown.
         df = plt_dtr.plt_dtr_attr(dtrs, attr, method="pca", x1=1, x2=2, text=text)
@@ -108,16 +108,16 @@ You can create original database and save the files in the specified directory.
         from deeptexture import cbir
 
         # create DTR object
-        dtr_obj = dt.DTR(arch='vgg', layer='block3_conv3', dim=1024)
+        dtr_obj = dt.DTR(arch='vgg', layer='block4_conv3', dim=1024)
 
         # create CBIR object
         cbir_obj = cbir.CBIR(dtr_obj, project='DB', working_dir='CBIR')
 
         # create CBIR database
-        imgfiles = ['./01.jpg',
-                    './02.jpg',
-                    './03.jpg',
-                    './04.jpg',]
+        imgfiles = ['./example/0KNpXTsaNix2T6.jpg',
+                    './example/0zpw5BpfoiRX9m.jpg',
+                    './example/11303cFBFubBwG.jpg',
+                    './example/19HDnAR7OBcA1d.jpg',]
         patients = ['01',
                     '02',
                     '03',
@@ -137,7 +137,7 @@ You can create original database and save the files in the specified directory.
     .. code-block:: python
 
         # search the most similar images (top two)
-        qimgfile = "./5.jpg"
+        qimgfile = "./example/3t0U7aBXRY9v1V.jpg"
         cbir_obj.search(qimgfile, img_attr='imgfile', case_attr='patient', n=2)
 
 Supervised learning model
@@ -148,10 +148,10 @@ Supervised learning model
     import deeptexture as dt
     from deeptexture import ml
     
-    imgfiles = ['./01.jpg',
-                './02.jpg',
-                './03.jpg',
-                './04.jpg',]
+    imgfiles = ['./example/0KNpXTsaNix2T6.jpg',
+                './example/0zpw5BpfoiRX9m.jpg',
+                './example/11303cFBFubBwG.jpg',
+                './example/19HDnAR7OBcA1d.jpg',]
     patients = ['01',
                 '02',
                 '03',
@@ -164,7 +164,7 @@ Supervised learning model
                             'patient': patients,
                             'tissue': attr})
 
-    dtrs = dtr_obj.get_dtr_multifiles(imgfiles, angle=90) 
+    dtrs = dtr_obj.get_dtr_multifiles(imgfiles, angle=[0, 90]) 
     
     # create ml object
     ml_obj = ml.ML(dtrs, df_attr.imgfile)
@@ -173,4 +173,4 @@ Supervised learning model
     y = df_attr.tissue
     cases = df_attr.patient
     
-    lr = ml_obj.get_lr(y, cases)
+    lr = ml_obj.fit_eval(y, cases)
