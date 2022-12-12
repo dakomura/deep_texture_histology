@@ -61,6 +61,7 @@ class ML:
                 used_index.extend(list(target_index))
         
         dtrs2 = self.dtrs[used_index,:]
+        imgfiles2 = np.array(self.imgfiles)[used_index]
         if additional_features is not None:
             if len(additional_features.shape) == 1:
                 additional_features = np.expand_dims(additional_features, axis=1)
@@ -93,6 +94,8 @@ class ML:
         X_test = np.vstack([x for i, x in enumerate(dtrs2) if cases[i] in test_cases])
         y_train = [x for i, x in enumerate(y) if cases[i] in train_cases]
         y_test = [x for i, x in enumerate(y) if cases[i] in test_cases]
+        #img_train = [x for i, x in enumerate(imgfiles2) if cases[i] in train_cases]
+        img_test = [x for i, x in enumerate(imgfiles2) if cases[i] in test_cases]
 
 
         model.fit(X_train, y_train) 
@@ -122,7 +125,7 @@ class ML:
                 plt.xlabel("Prediction", fontsize=13, rotation=0)
                 plt.ylabel("Ground Truth", fontsize=13)
 
-            return conf_mat
+            return conf_mat, {'imgfiles_test':img_test, 'y_pred':y_pred, 'y_test':y_test} 
         else:
             pos_index = 1
             probs = self.model.predict_proba(X_test)
@@ -143,7 +146,7 @@ class ML:
                 plt.xlabel('False Positive Rate')
                 plt.show()
 
-            return roc_auc
+            return roc_auc, {'imgfiles_test':img_test, 'y_pred':preds, 'y_test':y_test}
 
     def get_model(self,
                   ) -> Any:
