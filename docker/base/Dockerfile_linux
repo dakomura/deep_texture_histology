@@ -27,6 +27,6 @@ RUN pip install \
     plotly \
     deeptexture
 
-RUN github clone https://github.com/dakomura/deep_texture_histology.git
+RUN git clone https://github.com/dakomura/deep_texture_histology.git
 
 CMD ["jupyter", "lab", "--allow-root", "--ip", "0.0.0.0"]
