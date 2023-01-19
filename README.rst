@@ -17,6 +17,14 @@ The package can be installed with ``pip``:
 
 Conda environmental files including dependent libraries for various OS are available `here <https://github.com/dakomura/dtr_env>`_.
 
+To test the successful installation,
+
+.. code-block:: console
+
+   $ git clone https://github.com/dakomura/deep_texture_histology
+   $ cd deep_texture_histology
+   $ python check_libraries_and_quick_test.py
+
 Prerequisites
 ==============
 
@@ -61,7 +69,7 @@ If you use this library for your research, please cite:
     
     Cell Reports 38, 110424,2022. https://doi.org/10.1016/j.celrep.2022.110424
 
-See Also
+Documentation
 ========
 
 `Documentation <https://deep-texture-histology.readthedocs.io/en/latest/>`_
