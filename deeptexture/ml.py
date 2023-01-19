@@ -120,11 +120,11 @@ class ML:
                                     columns=labels)
             if show:
                 fig, ax = plt.subplots()
-                ax.matshow(conf_mat, cmap=plt.cm.Blues, alpha=0.3)
+                im = ax.matshow(conf_mat, cmap=plt.cm.Blues, alpha=0.3)
                 for i in range(conf_mat.shape[0]):
                     for j in range(conf_mat.shape[1]):
                         ax.text(x=j, y=i, s=f"{conf_mat[i, j]}({conf_mat[i, j]*100/np.sum(conf_mat[i]):.1f}%)", va='center', ha='center')
-
+                fig.colorbar(im)
                 tick_marks = np.arange(len(labels))
                 plt.tick_params(axis="x", bottom=False, top=False, labelbottom=True, labeltop=False)
                 plt.tick_params(axis="y", left=False)
