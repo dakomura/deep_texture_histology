@@ -114,18 +114,26 @@ class ML:
         if mode == 'multi':
             y_pred = self.model.predict(X_test)
             self.ml_data['y_pred'] = y_pred
-            conf_mat = confusion_matrix(y_test, y_pred, labels=labels)
-            conf_mat = pd.DataFrame(data=conf_mat,
+            conf_mat = confusion_matrix(y_test, y_pred)
+            conf_mat_df = pd.DataFrame(data=conf_mat,
                                     index=labels,
                                     columns=labels)
             if show:
-                g=sns.heatmap(conf_mat, square=True, cbar=False, annot=True, cmap='Blues')
-                g.set_xticklabels(g.get_xticklabels(), rotation=90, horizontalalignment='right')
-                g.set_yticklabels(g.get_yticklabels(), rotation=0, horizontalalignment='right')
+                fig, ax = plt.subplots()
+                ax.matshow(conf_mat, cmap=plt.cm.Blues, alpha=0.3)
+                for i in range(conf_mat.shape[0]):
+                    for j in range(conf_mat.shape[1]):
+                        ax.text(x=j, y=i, s=f"{conf_mat[i, j]}({conf_mat[i, j]*100/np.sum(conf_mat[i]):.1f}%)", va='center', ha='center')
+
+                tick_marks = np.arange(len(labels))
+                plt.tick_params(axis="x", bottom=False, top=False, labelbottom=True, labeltop=False)
+                plt.tick_params(axis="y", left=False)
+                plt.xticks(tick_marks, labels, rotation=45)
+                plt.yticks(tick_marks, labels)
                 plt.xlabel("Prediction", fontsize=13, rotation=0)
                 plt.ylabel("Ground Truth", fontsize=13)
 
-            return conf_mat, {'imgfiles_test':img_test, 'y_pred':y_pred, 'y_test':y_test} 
+            return conf_mat_df, {'imgfiles_test':img_test, 'y_pred':y_pred, 'y_test':y_test} 
         else:
             pos_index = 1
             probs = self.model.predict_proba(X_test)
