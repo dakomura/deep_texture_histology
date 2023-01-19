@@ -47,7 +47,7 @@ Recommended Environment
 * OS
    * Linux (both CPU and GPU version)
    * Mac (both CPU and GPU version for M1 and M2 chip)
-   * Windows (CPU version only)
+   * Windows (both CPU and GPU version)
 
 License
 =======
