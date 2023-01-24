@@ -30,16 +30,19 @@ Prerequisites
 
 Python version 3.6 or newer.
 
-* numpy >=1.20.3
-* tensorflow >=2.1.0
-* joblib >=0.13.2
-* Pillow >=8.0.1
-* nmslib >=2.0.6
-* matplotlib >= 3.5.0
-* scikit-learn >=1.1.0
-* seaborn >=0.10.1
-* pandas >=1.1.0
+* numpy
+* tensorflow
+* joblib
+* Pillow
+* nmslib
+* matplotlib
+* scikit-learn
+* seaborn
+* pandas
 * cv2
+
+All the required libraries can be installed with conda yml files.
+See https://github.com/dakomura/dtr_env
 
 Recommended Environment
 =======================

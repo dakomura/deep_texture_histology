@@ -130,8 +130,8 @@ class ML:
                 plt.tick_params(axis="y", left=False)
                 plt.xticks(tick_marks, labels, rotation=45)
                 plt.yticks(tick_marks, labels)
-                plt.xlabel("Prediction", fontsize=13, rotation=0)
-                plt.ylabel("Ground Truth", fontsize=13)
+                plt.xlabel("Prediction", fontsize=26, rotation=0)
+                plt.ylabel("Ground Truth", fontsize=26)
 
             return conf_mat_df, {'imgfiles_test':img_test, 'y_pred':y_pred, 'y_test':y_test} 
         else:
