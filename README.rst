@@ -7,6 +7,12 @@ Overview
 deeptexture is a python library to calculate deep texture representations (DTRs) for histology images (Cell Reports, 2022).
 Fucntions for plotting the distribution of DTRs, content-based image retrieval, and supervised learning are also implemented.
 
+Documentation
+=============
+
+`Documentation <https://deep-texture-histology.readthedocs.io/en/latest/>`_
+
+
 Installation
 =========================
 The package can be installed with ``pip``:
@@ -78,7 +84,3 @@ If you use this library for your research, please cite:
     
     Cell Reports 38, 110424,2022. https://doi.org/10.1016/j.celrep.2022.110424
 
-Documentation
-=============
-
-`Documentation <https://deep-texture-histology.readthedocs.io/en/latest/>`_
