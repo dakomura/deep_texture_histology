@@ -15,6 +15,8 @@ But we recommend installing deeptexture and all required packages in a dedicated
 
 The conda environmental files including dependent libraries for various OS are available `here <https://github.com/dakomura/dtr_env>`_.
 
+Dockerfiles for each OS are also available `here <https://github.com/dakomura/deep_texture_histology/tree/main/docker/base>`_.
+
 =================
 Installation test
 =================
