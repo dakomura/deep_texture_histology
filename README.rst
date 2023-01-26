@@ -1,10 +1,10 @@
 ***************************************************************************************
-deep_texture_histology : Tools for deep texture representation for histology images.
+deeptexture : Tools for deep texture representation for histology images.
 ***************************************************************************************
 
 Overview
 ==============
-deep_texture_representation is a python library to calculate deep texture representations (DTRs) for histology images (Cell Reports, 2022).
+deeptexture is a python library to calculate deep texture representations (DTRs) for histology images (Cell Reports, 2022).
 Fucntions for plotting the distribution of DTRs, content-based image retrieval, and supervised learning are also implemented.
 
 Installation
@@ -15,7 +15,9 @@ The package can be installed with ``pip``:
 
    $ pip install deeptexture
 
-Conda environmental files including dependent libraries for various OS are available `here <https://github.com/dakomura/dtr_env>`_.
+The conda environmental files including dependent libraries for various OS are available `here <https://github.com/dakomura/dtr_env>`_.
+
+Dockerfiles for each OS are also available `here <https://github.com/dakomura/deep_texture_histology/tree/main/docker/base>`_.
 
 To test the successful installation,
 
@@ -24,6 +26,7 @@ To test the successful installation,
    $ git clone https://github.com/dakomura/deep_texture_histology
    $ cd deep_texture_histology
    $ python check_libraries_and_quick_test.py
+
 
 Prerequisites
 ==============
