@@ -31,7 +31,7 @@ To test the successful installation,
 Prerequisites
 ==============
 
-Python version 3.6 or newer.
+Python version 3.6 or newer for Linux, 3.7 or newer for Windows, 3.8 or newer for MacOS.
 
 * numpy
 * tensorflow
@@ -43,6 +43,9 @@ Python version 3.6 or newer.
 * seaborn
 * pandas
 * cv2
+* plotly
+* umap-learn
+* efficientnet
 
 All the required libraries can be installed with conda yml files.
 See https://github.com/dakomura/dtr_env
