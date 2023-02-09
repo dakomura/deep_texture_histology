@@ -100,6 +100,9 @@ class CBIR:
         self.index = nmslib.init(method='hnsw', space='cosinesimil')
         self.index.loadIndex(filename = self.indexfile)
 
+        self.dtrs = np.load('{}/{}/feats.npy'.format(self.working_dir,
+                                            self.project))
+
         attr = joblib.load('{}/{}/attr.pkl'.format(self.working_dir,
                                             self.project))
         self.img_attr = attr['img_attr']
@@ -135,52 +138,27 @@ class CBIR:
                                       d[1][self.case_attr]) for d in df_tmp.iterrows()]
         imgcats(df_tmp[self.img_attr], labels=labels)
             
-
-    def search(self,
-               qimgfile: str,
-               n: int = 50,
-               show_query: bool = True,
-               show: bool = True,
-               scale: Union[None, int] = None,
-               fkey: Union[None, str] = None,
-               fval: Union[str, List[str], None] = None,
-               dpi: int = 320, 
-               save: bool = False, 
-               outfile: str = "", 
-               ) -> Tuple[np.ndarray, pd.DataFrame]:
-        """Search and show images similar to the query image using DTR
+    def _get_result(self,
+                    qdtr: np.ndarray,
+                    qdtr_rot: np.ndarray,
+                    k: int,
+                    n: int,
+                    fkey: Union[None, str] = None,
+                    fval: Union[str, List[str], None] = None,
+                    ) -> Tuple[List, List, List, List, List]:
+        """get CBIR result (used in self.search)
 
         Args:
-            qimgfile (str): Query image file.
-            show_query (bool, optional): Show query image. Defaults to True.
-            show (bool, optional): Show retrieved images. Defaults to True.
-            n (int, optional): The number of retrieved images. Defaults to 50.
-            scale (Union[None, int], optional): Query image is rescaled. Default to None.
+            qdtr (np.ndarray): query dtr
+            qdtr_rot (np.ndarray): rotated query dtr
+            k (int): the number of retrieved nearest neighbors
+            n (int): The number of retrieved images. Defaults to 50.
             fkey (Union[None, str]): Key for filter in df_attr. Default to None.
             fval (Union[str, List[str], None]): Value(s) for filter. Default to None.
-            dpi (int, optional): Dots per inch (DPI) of output image. Defaults to 320.
-            save (bool, optional): Save the output image to outfile if True. Defaults to False.
-            outfile (str, optional): Output image file. Defaults to "".
+
         Returns:
-            Tuple[np.ndarray, pd.DataFrame]: Retrieved image file and the corresponding info(case, similarity, and attribute).
+            Tuple[List, List, List, List, List]: _description_
         """
-        if type(fval) == str:
-            fval = [fval]
-
-        if fkey is not None:
-            if not fkey in self.df_attr.columns:
-                raise Exception("invalid key for filter {}".format(fkey))
-
-        if save is False:
-            outfile = ""
-        
-
-        qdtr = self.dtr_obj.get_dtr(qimgfile, scale=scale)
-        qdtr_rot = self.dtr_obj.get_dtr(qimgfile, angle = 90, scale=scale)
-
-        ## search
-        k = min(self.df_attr.shape[0], n * 50) # the number of retrieved nearest neighbors
-        
         results, dists = self._nearest_neighbor(qdtr, qdtr_rot, k)
 
         patients = []
@@ -209,7 +187,93 @@ class CBIR:
             if len(num) == n:
                 break
 
+        return patients, attrs, sims, num, imgfiles
+
+    def _query_expand(self,
+                      qdtr: np.ndarray,
+                      qdtr_rot: np.ndarray,
+                      alpha: float,
+                      num: List[int],
+                      ) -> Tuple[np.ndarray, np.ndarray]:
+        """return expanded query DTRs
+
+        Args:
+            qdtr (np.ndarray): query DTR
+            qdtr_rot (np.ndarray): rotated query DTR
+            alpha (float): alpha for query expansion. new_dtr = (1-alpha)*dtr + alpha* (dtr of similar images)
+            num (List[int]): database index list ordered by the distance to the query.
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: expanded query and rotated query DTR.
+        """
+        
+        k = 5
+
+        qdtr_expand = (1-alpha) * qdtr + alpha * np.mean(self.dtrs[num[:k], :], axis=0)
+        qdtr_rot_expand = (1-alpha) * qdtr_rot + alpha * np.mean(self.dtrs[num[:k], :], axis=0)
+
+        return qdtr_expand, qdtr_rot_expand
+
+    def search(self,
+               qimgfile: str,
+               n: int = 50,
+               show_query: bool = True,
+               show: bool = True,
+               scale: Union[None, int] = None,
+               fkey: Union[None, str] = None,
+               fval: Union[str, List[str], None] = None,
+               dpi: int = 320, 
+               save: bool = False, 
+               expand: bool = False,
+               alpha: float = 0.3,
+               outfile: str = "", 
+               ) -> Tuple[np.ndarray, pd.DataFrame]:
+        """Search and show images similar to the query image using DTR
+
+        Args:
+            qimgfile (str): Query image file.
+            show_query (bool, optional): Show query image. Defaults to True.
+            show (bool, optional): Show retrieved images. Defaults to True.
+            n (int, optional): The number of retrieved images. Defaults to 50.
+            scale (Union[None, int], optional): Query image is rescaled. Default to None.
+            fkey (Union[None, str]): Key for filter in df_attr. Default to None.
+            fval (Union[str, List[str], None]): Value(s) for filter. Default to None.
+            dpi (int, optional): Dots per inch (DPI) of output image. Defaults to 320.
+            save (bool, optional): Save the output image to outfile if True. Defaults to False.
+            expand (bool, optional): Apply alpha query expansion. Defaults to False.
+            alpha (float, optional): alpha for query expansion. Defaults to 0.3.
+            outfile (str, optional): Output image file. Defaults to "".
+        Returns:
+            Tuple[np.ndarray, pd.DataFrame]: Retrieved image file and the corresponding info(case, similarity, and attribute).
+        """
+        if type(fval) == str:
+            fval = [fval]
+
+        if fkey is not None:
+            if not fkey in self.df_attr.columns:
+                raise Exception("invalid key for filter {}".format(fkey))
+
+        if save is False:
+            outfile = ""
+        
+
+        qdtr = self.dtr_obj.get_dtr(qimgfile, scale=scale)
+        qdtr_rot = self.dtr_obj.get_dtr(qimgfile, angle = 90, scale=scale)
+
+        ## search
+        k = min(self.df_attr.shape[0], n * 5 if expand else n * 50) # the number of retrieved nearest neighbors
+
+        
+        patients, attrs, sims, num, imgfiles = self._get_result(qdtr, qdtr_rot, k, n, fkey, fval)
         ### plot results
+
+
+        # query expansion (3 times)
+        if expand:
+            qdtr_expand, qdtr_rot_expand = qdtr, qdtr_rot
+            for i in range(3):
+                qdtr_expand, qdtr_rot_expand = self._query_expand(qdtr_expand, qdtr_rot_expand, alpha, num)
+                patients, attrs, sims, num, imgfiles = self._get_result(qdtr_expand, qdtr_rot_expand, k, n, fkey, fval)
 
 
         labels = ["{}\n{}\n{:.3f}".format(attr, patient, s) for attr,patient,s in zip(attrs, patients, sims)]
