@@ -362,6 +362,7 @@ class CBIR:
                     dpi: int = 320,
                     save: bool = False,
                     outfile: str = "", 
+                    fontsize: int = 12,
                     ) -> pd.DataFrame:
         """Search and show images similar to the query image using DTR
 
@@ -380,6 +381,7 @@ class CBIR:
             dpi (int, optional): Dots per inch (DPI) of output image. Defaults to 320.
             save (bool, optional): Save the output image to outfile if True. Defaults to False.
             outfile (str, optional): Output image file. Defaults to "".
+            fontsize(int, optional): Fontsize. Defaults to 12.
         Returns:
             pd.DataFrame : Results
         """
@@ -459,7 +461,7 @@ class CBIR:
         df_merged = df_merged.iloc[:min(n, df_merged.shape[0]),:]
 
         max_category = self._weighted_knn(df_merged['agg_sim'], df_merged['category_0'], n=n)
-        print ("The most probable diagnosis: ", max_category)
+        #print ("The most probable diagnosis: ", max_category)
 
         qn = len(qimgfiles)
       
@@ -474,7 +476,7 @@ class CBIR:
                     im_list = np.asarray(Image.open(qimgfile))
                     plt.imshow(im_list)
                     plt.axis('off')
-                    plt.title('query: {}'.format(qimgfile))
+                    plt.title('query: {}'.format(os.path.basename(qimgfile)), fontsize=fontsize)
             else:
                 offset = 1
                 
@@ -486,11 +488,11 @@ class CBIR:
                         if os.path.exists(imgfile):
                             im_list = np.asarray(Image.open(imgfile)) 
                             plt.imshow(im_list)
-                            title = 'sim:{}'.format(d[1][f'sim_{j}']) 
+                            title = 'sim:{:.3f}'.format(d[1][f'sim_{j}']) 
                             if show_keys is not None:
                                 for sk in show_keys:
                                     title += "\n" + self.df_attr[sk][d[1][f'num_{j}']]
-                            plt.title(title)
+                            plt.title(title, fontsize=fontsize)
                     plt.axis('off')
             if save is True:
                 plt.savefig(outfile, dpi=dpi)
