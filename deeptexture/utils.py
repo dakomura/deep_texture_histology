@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.metrics import pairwise_distances as pair_dist
 from PIL import Image
 import matplotlib.pyplot as plt
+import textwrap
 
 
 def get_medoid(dtrs: np.ndarray,
@@ -33,6 +34,8 @@ def imgcats(infiles: List[str],
             nrows: int = 3, 
             save: Union[None, str] = None,
             dpi: int = 320,
+            fontsize: int = 12,
+            w: int = 70,
             ) -> None:
 
     ncols = int(np.ceil(len(infiles)/nrows))
@@ -42,7 +45,7 @@ def imgcats(infiles: List[str],
         im_list = np.asarray(im)
         plt.imshow(im_list)
         if len(labels) != 0:
-            plt.title(labels[i])
+            plt.title("\n".join(textwrap.wrap(labels[i], w)), fontsize=fontsize)
         plt.axis('off')
     if save != None:
         plt.savefig(save, dpi=dpi)

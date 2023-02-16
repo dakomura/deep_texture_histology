@@ -6,6 +6,7 @@ import joblib
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import textwrap
 from PIL import Image
 from .dtr import *
 from .utils import *
@@ -17,6 +18,8 @@ class CBIR:
                     dtr_obj: Any,
                     project: str = "DB",
                     working_dir: str = ".",
+                    fontsize: int = 12,
+                    tw: int = 70,
                     ) -> None:
         """Initialize an object for Content-based Image Retrieval using DTRs.
 
@@ -24,13 +27,20 @@ class CBIR:
             dtr_obj (Any): DTR object.
             project (str, optional): Database name. This value is used as a directory name in which all the data is stored. Defaults to "DB".
             working_dir (str, optional): Working directory. All the data is stored under the directory. Defaults to ".".
+            fontsize (int, optional): title fontsize in the result. Defaults to 12.
+            tw (int, optional): wrap witdth in the result. Defaults to 70.
         """
         self.dtr_obj = dtr_obj
         self.project = project
         self.working_dir = working_dir
+
+        self.fontsize = fontsize
+        self.tw = tw
+        
         self.indexfile = '{}/{}/nmslib_index.idx'.format(self.working_dir,
                                                             self.project)
         os.makedirs(os.path.dirname(self.indexfile), exist_ok=True)
+
 
     def create_db(self,
                     df_attr: Any,
@@ -133,7 +143,7 @@ class CBIR:
         labels = ["{}\n{}\n{}".format(os.path.basename(d[1][self.img_attr]), 
                                       d[1][self.type_attr], 
                                       d[1][self.case_attr]) for d in df_tmp.iterrows()]
-        imgcats(df_tmp[self.img_attr], labels=labels)
+        imgcats(df_tmp[self.img_attr], labels=labels, fontsize=self.fontsize, w=self.tw)
             
 
     def search(self,
@@ -215,9 +225,11 @@ class CBIR:
         labels = ["{}\n{}\n{:.3f}".format(attr, patient, s) for attr,patient,s in zip(attrs, patients, sims)]
         if show:
             if show_query:
-                imgcats([qimgfile, *imgfiles], labels=["query", *labels], save=outfile, dpi=dpi)
+                imgcats([qimgfile, *imgfiles], labels=["query", *labels], save=outfile, dpi=dpi,
+                        fontsize=self.fontsize, w=self.tw)
             else:
-                imgcats(imgfiles, labels=labels, save=outfile, dpi=dpi)
+                imgcats(imgfiles, labels=labels, save=outfile, dpi=dpi,
+                        fontsize=self.fontsize, w=self.tw)
 
         return imgfiles, pd.DataFrame({'attr':attrs, 'case':patients, 'similarity':sims})
 
@@ -332,7 +344,8 @@ class CBIR:
                     im_list = np.asarray(Image.open(qimgfile))
                     plt.imshow(im_list)
                     plt.axis('off')
-                    plt.title('query: {}'.format(qimgfile))
+                    plt.title('query: {}'.format("\n".textwrap.wrap(os.path.basename(qimgfile), self.tw)), 
+                              fontsize=self.fontsize)
             else:
                 offset = 1
                 
@@ -344,7 +357,8 @@ class CBIR:
                         if os.path.exists(imgfile):
                             im_list = np.asarray(Image.open(imgfile)) 
                             plt.imshow(im_list)
-                            plt.title('sim:{}'.format(d[1][f'sim_{j}']))
+                            plt.title('sim:{}'.format(d[1][f'sim_{j}']),
+                                      fontsize=self.fontsize)
                     plt.axis('off')
             if save is True:
                 plt.savefig(outfile, dpi=dpi)
