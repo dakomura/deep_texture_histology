@@ -81,7 +81,7 @@ class DTR:
         # preprocess function
         self.prep = self.prep_dict[arch].preprocess_input
 
-    def _save_mat(self, mat_file) -> None:
+    def save_mat(self, mat_file) -> None:
         print ("save matrix to ", mat_file)
         np.save(mat_file, np.concatenate(self.filter1, self.filter2))
 
