@@ -17,14 +17,6 @@ if eff_spec is not None:
     import efficientnet.tfkeras
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
-if gpus:
-    try:
-        tf.config.experimental.set_virtual_device_configuration(gpus[0],
-                                                                [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=4096)])
-        logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-    except RuntimeError as e:
-        print(e)
 
 class DTR:
     def __init__(self,
@@ -32,6 +24,7 @@ class DTR:
                  layer: str = 'block4_conv3', 
                  dim: int = 1024, 
                  mat_file: Union[None, str] = None,
+                 gpu: int = 0,
                  ) -> None:
         """Initializes DTR model and its preprocessing function.
 
@@ -40,11 +33,21 @@ class DTR:
             layer (str, optional): A layer in the CNN model. Defaults to 'block4_conv3'.
             dim (int, optional): The output dimension. Defaults to 1024.
             mat_file (Union[None, str], optional): Random matrix file for Compact Bilinear Pooling. Defaults to None.
+            gpu (int, optional): GPU number. Defaults to 0.
         """
         self.arch = arch
         self.layer = layer
         self.dim = dim
         self.mat_file = mat_file
+
+        if gpus:
+            try:
+                tf.config.experimental.set_virtual_device_configuration(gpus[gpu],
+                                                                        [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=4096)])
+                logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+                print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+            except RuntimeError as e:
+                print(e)
 
         self.archs_dict = {
             'mobilenet': mobilenet_v2.MobileNetV2,
@@ -73,9 +76,6 @@ class DTR:
         print(f"layer:{layer}")
         print(f"dim:{dim}")
 
-
-        self._gen_mat()
-        
         self._create_model()
 
         # preprocess function
