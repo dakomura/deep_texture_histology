@@ -31,6 +31,7 @@ class DTR:
                  arch: str = 'vgg',
                  layer: str = 'block4_conv3', 
                  dim: int = 1024, 
+                 mat_file: Union[None, str] = None,
                  ) -> None:
         """Initializes DTR model and its preprocessing function.
 
@@ -38,10 +39,12 @@ class DTR:
             arch (str, optional): CNN model. Defaults to 'vgg'.
             layer (str, optional): A layer in the CNN model. Defaults to 'block4_conv3'.
             dim (int, optional): The output dimension. Defaults to 1024.
+            mat_file (Union[None, str], optional): Random matrix file for Compact Bilinear Pooling. Defaults to None.
         """
         self.arch = arch
         self.layer = layer
         self.dim = dim
+        self.mat_file = mat_file
 
         self.archs_dict = {
             'mobilenet': mobilenet_v2.MobileNetV2,
@@ -70,11 +73,17 @@ class DTR:
         print(f"layer:{layer}")
         print(f"dim:{dim}")
 
+
+        self._gen_mat()
+        
         self._create_model()
 
         # preprocess function
         self.prep = self.prep_dict[arch].preprocess_input
 
+    def _save_mat(self, mat_file) -> None:
+        print ("save matrix to ", mat_file)
+        np.save(mat_file, np.concatenate(self.filter1, self.filter2))
 
     def _create_model(self) -> None:
         conv_base = self.archs_dict[self.arch](
@@ -87,18 +96,26 @@ class DTR:
 
         rng = np.random.default_rng(2022)
 
-        r1 = rng.uniform(0,1,(1,c,self.dim))
-        nfilter1 = np.where(r1>0.5,1,-1)
-        filter1 = tf.constant(nfilter1,dtype=float)
 
-        r2 = rng.uniform(0,1,(1,c,self.dim))
-        nfilter2 = np.where(r2>0.5,1,-1)
-        filter2 = tf.constant(nfilter2,dtype=float)
+        if self.mat_file is not None:
+            print ("load matrix from ", self.mat_file)
+            filters = np.load(self.mat_file)
+            self.filter1 = filters[0][np.newaxis,:,:]
+            self.filter2 = filters[1][np.newaxis,:,:]
+
+        else:
+            r1 = rng.uniform(0,1,(1,c,self.dim))
+            nfilter1 = np.where(r1>0.5,1,-1)
+            self.filter1 = tf.constant(nfilter1, dtype=float)
+
+            r2 = rng.uniform(0,1,(1,c,self.dim))
+            nfilter2 = np.where(r2>0.5,1,-1)
+            self.filter2 = tf.constant(nfilter2, dtype=float)
 
         x2 = tf.keras.layers.Reshape((-1,c))(x1)
 
-        y1 = tf.nn.conv1d(x2,filter1,stride=1,padding='SAME',data_format='NWC')
-        y2 = tf.nn.conv1d(x2,filter2,stride=1,padding='SAME',data_format='NWC')
+        y1 = tf.nn.conv1d(x2, self.filter1, stride=1, padding='SAME', data_format='NWC')
+        y2 = tf.nn.conv1d(x2, self.filter2, stride=1, padding='SAME', data_format='NWC')
 
         y3 = tf.keras.layers.Reshape((-1,self.dim))(y1)
         y4 = tf.keras.layers.Reshape((-1,self.dim))(y2)
