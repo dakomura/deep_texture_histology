@@ -5,6 +5,7 @@ import numpy as np
 import cv2
 import pandas as pd
 import tensorflow as tf
+import joblib
 from tensorflow.keras import models, preprocessing
 from tensorflow.keras.applications import resnet50, vgg16, mobilenet_v2, inception_v3, nasnet, densenet, inception_resnet_v2
 
@@ -83,8 +84,8 @@ class DTR:
 
     def save_mat(self, mat_file) -> None:
         print ("save matrix to ", mat_file)
-        np.save(mat_file, 
-                np.concatenate(self.nfilter1, self.nfilter2))
+        joblib.dump([self.nfilter1, self.nfilter2], 
+                    mat_file)
 
     def _create_model(self) -> None:
         conv_base = self.archs_dict[self.arch](
@@ -100,9 +101,7 @@ class DTR:
 
         if self.mat_file is not None:
             print ("load matrix from ", self.mat_file)
-            nfilters = np.load(self.mat_file)
-            self.nfilter1 = nfilters[0][np.newaxis,:,:]
-            self.nfilter2 = nfilters[1][np.newaxis,:,:]
+            self.nfilter1, self.nfilter2 = joblib.load(self.mat_file)
 
         else:
             r1 = rng.uniform(0,1,(1,c,self.dim))
