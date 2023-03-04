@@ -83,7 +83,8 @@ class DTR:
 
     def save_mat(self, mat_file) -> None:
         print ("save matrix to ", mat_file)
-        np.save(mat_file, np.concatenate(self.filter1, self.filter2))
+        np.save(mat_file, 
+                np.concatenate(self.nfilter1, self.nfilter2))
 
     def _create_model(self) -> None:
         conv_base = self.archs_dict[self.arch](
@@ -99,23 +100,23 @@ class DTR:
 
         if self.mat_file is not None:
             print ("load matrix from ", self.mat_file)
-            filters = np.load(self.mat_file)
-            self.filter1 = filters[0][np.newaxis,:,:]
-            self.filter2 = filters[1][np.newaxis,:,:]
+            nfilters = np.load(self.mat_file)
+            self.nfilter1 = nfilters[0][np.newaxis,:,:]
+            self.nfilter2 = nfilters[1][np.newaxis,:,:]
 
         else:
             r1 = rng.uniform(0,1,(1,c,self.dim))
-            nfilter1 = np.where(r1>0.5,1,-1)
-            self.filter1 = tf.constant(nfilter1, dtype=float)
-
+            self.nfilter1 = np.where(r1>0.5,1,-1)
             r2 = rng.uniform(0,1,(1,c,self.dim))
-            nfilter2 = np.where(r2>0.5,1,-1)
-            self.filter2 = tf.constant(nfilter2, dtype=float)
+            self.nfilter2 = np.where(r2>0.5,1,-1)
+
+        filter1 = tf.constant(self.nfilter1, dtype=float)
+        filter2 = tf.constant(self.nfilter2, dtype=float)
 
         x2 = tf.keras.layers.Reshape((-1,c))(x1)
 
-        y1 = tf.nn.conv1d(x2, self.filter1, stride=1, padding='SAME', data_format='NWC')
-        y2 = tf.nn.conv1d(x2, self.filter2, stride=1, padding='SAME', data_format='NWC')
+        y1 = tf.nn.conv1d(x2, filter1, stride=1, padding='SAME', data_format='NWC')
+        y2 = tf.nn.conv1d(x2, filter2, stride=1, padding='SAME', data_format='NWC')
 
         y3 = tf.keras.layers.Reshape((-1,self.dim))(y1)
         y4 = tf.keras.layers.Reshape((-1,self.dim))(y2)
