@@ -84,3 +84,9 @@ If you use this library for your research, please cite:
     
     Cell Reports 38, 110424,2022. https://doi.org/10.1016/j.celrep.2022.110424
 
+    Herdiantoputri, RR., Komura, D., Fujisaka, K., Ikeda, T., Ishikawa, S., 
+    
+    "*Deep texture representation analysis for histopathological images.*"
+    
+    STAR Protocols 4, 102161,2023. https://doi.org/10.1016/j.xpro.2023.102161
+
