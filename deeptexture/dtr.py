@@ -34,7 +34,7 @@ class DTR(nn.Module):
     def __init__(self, 
                  arch: str = 'vgg', #only vgg is supported
                  layer: str = 'block3_conv3',
-                 output_dim: int = 1024,
+                 dim: int = 1024,
                  rand_1: Union[int, None] = None, 
                  rand_2: Union[int, None] = None, 
                  device: Union[int, str] = 'cuda:0',
@@ -57,8 +57,8 @@ class DTR(nn.Module):
 
         self.features = self.model[:i]
         
-        self.input_dim = self.features[-1].out_channels
-        self.output_dim = output_dim
+        self.input_dim = self.features[-2].out_channels
+        self.output_dim = dim
     
         if rand_1 is None:
             np.random.seed(128)
