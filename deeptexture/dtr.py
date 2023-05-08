@@ -4,102 +4,103 @@ from pyrsistent import mutant
 import numpy as np
 import cv2
 import pandas as pd
-import tensorflow as tf
-from tensorflow.keras import models, preprocessing
-from tensorflow.keras.applications import resnet50, vgg16, mobilenet_v2, inception_v3, nasnet, densenet, inception_resnet_v2
+
+import torch
+from torch import nn
+from torchvision.models import vgg16, VGG16_Weights
+from collections import namedtuple
+from torchvision import transforms
+from scipy.ndimage import rotate
+
 
 from .utils import *
 
-#efficientnet is optional
-import importlib
-eff_spec = importlib.util.find_spec("efficientnet")
-if eff_spec is not None:
-    import efficientnet.tfkeras
+class Vgg16(torch.nn.Module):
+    def __init__(self):
+        super(Vgg16, self).__init__()
+        features = list(vgg16(weights=VGG16_Weights.IMAGENET1K_FEATURES).features)[:16]
+        self.features = nn.ModuleList(features).eval() 
+        
+    def forward(self, x):
+        results = []
+        for ii,model in enumerate(self.features):
+            x = model(x)
+            if ii in {3,8,15,22}:
+                results.append(x)
+        return results
 
+        
+class DTR(nn.Module):
+    def __init__(self, 
+                 arch: str = 'vgg', #only vgg is supported
+                 layer: str = 'block3_conv3',
+                 output_dim: int = 1024,
+                 rand_1: Union[int, None] = None, 
+                 rand_2: Union[int, None] = None, 
+                 device: Union[int, str] = 'cuda:0',
+                 ):
 
-class DTR:
-    def __init__(self,
-                 arch: str = 'vgg',
-                 layer: str = 'block3_conv3', 
-                 dim: int = 1024, 
-                 ) -> None:
-        """Initializes DTR model and its preprocessing function.
+        self.device = device
 
-        Args:
-            arch (str, optional): CNN model. Defaults to 'vgg'.
-            layer (str, optional): A layer in the CNN model. Defaults to 'block3_conv3'.
-            dim (int, optional): The output dimension. Defaults to 1024.
+        if arch == 'vgg':       
+            self.model = list(vgg16(weights=VGG16_Weights.IMAGENET1K_FEATURES).features)
+
+        else:
+            raise ("Only VGG16 model is supported in this version.")
+
+        if layer == 'block3_conv3':
+            i = 16
+        elif layer == 'block4_conv3':
+            i = 23
+        else:
+            raise ("Only block3_conv3 or block4_conv3 layers are supported in this version.")
+
+        self.features = self.model[:i]
+        
+        self.input_dim = self.features[-1].out_channels
+        self.output_dim = output_dim
+    
+        if rand_1 is None:
+            np.random.seed(128)
+            rand_1 = np.random.randint(2,size=(self.input_dim, self.output_dim))*2-1
+            self.rand_1 = torch.Tensor(rand_1).to(device)
+            
+        if rand_2 is None:
+            np.random.seed(1997)
+            rand_2 = np.random.randint(2,size=(self.input_dim, self.output_dim))*2-1
+            self.rand_2 = torch.Tensor(rand_2).to(device)
+
+        self.normalize = transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225],
+            )
+
+        self.prep = transforms.Compose([
+            transforms.ToTensor(),
+            self.normalize,
+        ])
+
+        
+    def forward(self, bottom):
         """
-        self.arch = arch
-        self.layer = layer
-        self.dim = dim
+        bottom1: 1st input, 4D Tensor of shape [batch_size, input_dim1, height, width].
+        bottom2: 2nd input, 4D Tensor of shape [batch_size, input_dim2, height, width].
+        """
+        assert bottom.size(1) == self.input_dim1
 
-        self.archs_dict = {
-            'mobilenet': mobilenet_v2.MobileNetV2,
-            'vgg': vgg16.VGG16,
-            'resnet50': resnet50.ResNet50,
-            'inceptionv3': inception_v3.InceptionV3,
-            'nasnet': nasnet.NASNetLarge,
-            'densenet': densenet.DenseNet201,
-            'inceptionresnetv2': inception_resnet_v2.InceptionResNetV2,
-        }
-        self.prep_dict = {
-            'mobilenet': mobilenet_v2,
-            'vgg': vgg16,
-            'resnet50': resnet50,
-            'inceptionv3': inception_v3,
-            'nasnet': nasnet,
-            'densenet': densenet,
-            'inceptionresnetv2': inception_resnet_v2,
-        }
-
-        if eff_spec is not None:
-           self.archs_dict['efficientnet'] = efficientnet.tfkeras.EfficientNetB7
-           self.prep_dict['efficientnet'] = efficientnet.tfkeras 
-
-        print(f"arch:{arch}")
-        print(f"layer:{layer}")
-        print(f"dim:{dim}")
-
-        self._create_model()
-
-        # preprocess function
-        self.prep = self.prep_dict[arch].preprocess_input
-
-
-    def _create_model(self) -> None:
-        conv_base = self.archs_dict[self.arch](
-            weights = "imagenet",
-            include_top = None,
-            input_shape = (None, None, 3))
-
-        x1 = conv_base.get_layer(self.layer).output
-        _,_,_,c = x1.shape
-
-        rng = np.random.default_rng(2022)
-
-        r1 = rng.uniform(0,1,(1,c,self.dim))
-        nfilter1 = np.where(r1>0.5,1,-1)
-        filter1 = tf.constant(nfilter1,dtype=float)
-
-        r2 = rng.uniform(0,1,(1,c,self.dim))
-        nfilter2 = np.where(r2>0.5,1,-1)
-        filter2 = tf.constant(nfilter2,dtype=float)
-
-        x2 = tf.keras.layers.Reshape((-1,c))(x1)
-
-        y1 = tf.nn.conv1d(x2,filter1,stride=1,padding='SAME',data_format='NWC')
-        y2 = tf.nn.conv1d(x2,filter2,stride=1,padding='SAME',data_format='NWC')
-
-        y3 = tf.keras.layers.Reshape((-1,self.dim))(y1)
-        y4 = tf.keras.layers.Reshape((-1,self.dim))(y2)
-
-        z1 = tf.keras.layers.Multiply()([y3,y4])
-        z2 = tf.keras.layers.GlobalAveragePooling1D()(z1)
-        z3 = tf.math.sqrt(tf.math.abs(z2))*tf.math.sign(z2)
-        z4 = tf.math.l2_normalize(z3)
-
-        self.cbp = models.Model(conv_base.input,z4)
+        batch_size, _, height, width = bottom.size() #128,512,14,14
+        
+        bottom_flat = bottom.permute(0, 2, 3, 1).contiguous().view(-1, self.input_dim1) #128*14*14,512
+        
+        bottom1_mat = torch.matmul(bottom_flat,self.rand_1)
+        bottom2_mat = torch.matmul(bottom_flat,self.rand_2)
+        
+        cbp_flat = bottom1_mat * bottom2_mat
+        
+        cbp = cbp_flat.view(batch_size, height, width, self.output_dim)
+        cbp = cbp.mean(dim=1).mean(dim=1)
+        
+        return cbp
 
     def get_dtr(self, 
                 img: Any, 
@@ -140,9 +141,9 @@ class DTR:
 
         if angle is not None:
             if type(angle) == int:
-                x = preprocessing.image.apply_affine_transform(x, theta = angle)
+                x = rotate(x, angle = angle)
                 if multi_scale: 
-                    x2 = preprocessing.image.apply_affine_transform(x2, theta = angle)
+                    x2 = rotate(x2, angle = angle)
             elif type(angle) == list:
                 dtrs = np.vstack([self.get_dtr(img, theta, size, scale, multi_scale) for theta in angle])
                 dtr_mean = np.mean(dtrs, axis=0)
@@ -151,14 +152,16 @@ class DTR:
                 raise Exception(f"invalid data type in angle {angle}")
                 
 
-        x = np.expand_dims(x, axis=0)
-        x = self.prep(x)
-        dtr = np.array(self.cbp([x])[0])
+        
+
+        x = self.prep(x).to(self.device)
+        x.unsqueeze_(0)
+        dtr = self.forward(x).cpu().detach().numpy()
 
         if multi_scale:
-            x2 = np.expand_dims(x2, axis=0)
-            x2 = self.prep(x2)
-            dtr2 = np.array(self.cbp([x2])[0])
+            x2 = self.prep(x2).to(self.device)
+            x2.unsqueeze_(0)
+            dtr2 = self.forward(x2).cpu().detach().numpy()
             dtr = np.concatenate([dtr, dtr2])
 
         return dtr
@@ -234,5 +237,4 @@ class DTR:
             df_mean = None
                 
         return dtrs_mean, list(u_cases), df_mean
-        
         
