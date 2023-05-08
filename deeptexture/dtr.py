@@ -11,6 +11,7 @@ from torchvision.models import vgg16, VGG16_Weights
 from collections import namedtuple
 from torchvision import transforms
 from scipy.ndimage import rotate
+import torch.nn.functional as F
 
 
 from .utils import *
@@ -28,23 +29,28 @@ class DTR():
         self.device = device
 
         if arch == 'vgg':       
-            self.model = list(vgg16(weights=VGG16_Weights.IMAGENET1K_FEATURES).features)
+            self.model = vgg16(weights=VGG16_Weights.IMAGENET1K_FEATURES)
+            self.model.eval()
 
         else:
             raise ("Only VGG16 model is supported in this version.")
 
         if layer == 'block3_conv3':
-            i = 16
+            self.i = 16
         elif layer == 'block4_conv3':
-            i = 23
+            self.i = 23
         else:
             raise ("Only block3_conv3 or block4_conv3 layers are supported in this version.")
 
-        self.features = self.model[:i]
-        
-        self.input_dim = self.features[-2].out_channels
+
+        # 新しいフォワード関数をモデルに適用
+        self.model.forward = self.new_forward.__get__(self.model, self.model.__class__)
+
+        self.features_list = list(self.model.features)[:self.i]
+        self.input_dim = self.features_list[-2].out_channels
+
         self.output_dim = dim
-    
+
         if rand_1 is None:
             np.random.seed(128)
             rand_1 = np.random.randint(2,size=(self.input_dim, self.output_dim))*2-1
@@ -65,11 +71,17 @@ class DTR():
             self.normalize,
         ])
 
+        self.model = self.model.to(self.device)
+
+    # 特定の中間層の出力を取得するための新しいフォワード関数を定義
+    def new_forward(self, x):
+        for layer in self.model.features[:self.i]:
+            x = layer(x)
+        return x
         
     def forward(self, bottom):
         """
-        bottom1: 1st input, 4D Tensor of shape [batch_size, input_dim1, height, width].
-        bottom2: 2nd input, 4D Tensor of shape [batch_size, input_dim2, height, width].
+        bottom: 1st input, 4D Tensor of shape [batch_size, input_dim1, height, width].
         """
         assert bottom.size(1) == self.input_dim
 
@@ -84,6 +96,9 @@ class DTR():
         
         cbp = cbp_flat.view(batch_size, height, width, self.output_dim)
         cbp = cbp.mean(dim=1).mean(dim=1)
+
+        cbp = torch.sqrt(torch.abs(cbp)) * torch.sign(cbp)
+        cbp = F.normalize(cbp, p=2, dim=1)
         
         return cbp
 
@@ -137,15 +152,15 @@ class DTR():
                 raise Exception(f"invalid data type in angle {angle}")
                 
 
-        
-
-        x = self.prep(x).to(self.device)
-        x.unsqueeze_(0)
+        x = self.prep(x).unsqueeze(0).to(self.device)
+        with torch.no_grad():
+            x = self.model(x)
         dtr = self.forward(x).cpu().detach().numpy()
 
         if multi_scale:
-            x2 = self.prep(x2).to(self.device)
-            x2.unsqueeze_(0)
+            x2 = self.prep(x2).unsqueeze(0).to(self.device)
+            with torch.no_grad():
+                x2 = self.model(x2)
             dtr2 = self.forward(x2).cpu().detach().numpy()
             dtr = np.concatenate([dtr, dtr2])
 
