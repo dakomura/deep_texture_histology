@@ -15,22 +15,7 @@ from scipy.ndimage import rotate
 
 from .utils import *
 
-class Vgg16(torch.nn.Module):
-    def __init__(self):
-        super(Vgg16, self).__init__()
-        features = list(vgg16(weights=VGG16_Weights.IMAGENET1K_FEATURES).features)[:16]
-        self.features = nn.ModuleList(features).eval() 
-        
-    def forward(self, x):
-        results = []
-        for ii,model in enumerate(self.features):
-            x = model(x)
-            if ii in {3,8,15,22}:
-                results.append(x)
-        return results
-
-        
-class DTR(nn.Module):
+class DTR():
     def __init__(self, 
                  arch: str = 'vgg', #only vgg is supported
                  layer: str = 'block3_conv3',
