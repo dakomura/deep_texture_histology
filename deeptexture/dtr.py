@@ -71,11 +71,11 @@ class DTR():
         bottom1: 1st input, 4D Tensor of shape [batch_size, input_dim1, height, width].
         bottom2: 2nd input, 4D Tensor of shape [batch_size, input_dim2, height, width].
         """
-        assert bottom.size(1) == self.input_dim1
+        assert bottom.size(1) == self.input_dim
 
         batch_size, _, height, width = bottom.size() #128,512,14,14
         
-        bottom_flat = bottom.permute(0, 2, 3, 1).contiguous().view(-1, self.input_dim1) #128*14*14,512
+        bottom_flat = bottom.permute(0, 2, 3, 1).contiguous().view(-1, self.input_dim) #128*14*14,512
         
         bottom1_mat = torch.matmul(bottom_flat,self.rand_1)
         bottom2_mat = torch.matmul(bottom_flat,self.rand_2)
