@@ -11,6 +11,8 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from .utils import *
+from sklearn.preprocessing import label_binarize
+from sklearn.metrics import roc_curve, auc
 
 class ML:
     def __init__(self,
@@ -74,7 +76,7 @@ class ML:
         if len(labels) > 2:
             mode = 'multi'
             print ("Muticlass => SVM")
-            model = SVC(kernel = 'linear', C = 1)
+            model = SVC(kernel = 'linear', C = 1, probability=True)
         elif len(labels) == 2:
             mode = 'binary'
             print ("Binary => Logistic Regression")
@@ -119,21 +121,37 @@ class ML:
                                     index=labels,
                                     columns=labels)
             if show:
-                fig, ax = plt.subplots()
-                im = ax.matshow(conf_mat, cmap=plt.cm.Blues, alpha=0.3)
-                for i in range(conf_mat.shape[0]):
-                    for j in range(conf_mat.shape[1]):
-                        ax.text(x=j, y=i, s=f"{conf_mat[i, j]}({conf_mat[i, j]*100/np.sum(conf_mat[i]):.1f}%)", va='center', ha='center')
-                fig.colorbar(im)
-                tick_marks = np.arange(len(labels))
-                plt.tick_params(axis="x", bottom=False, top=False, labelbottom=True, labeltop=False)
-                plt.tick_params(axis="y", left=False)
-                plt.xticks(tick_marks, labels, rotation=45)
-                plt.yticks(tick_marks, labels)
-                plt.xlabel("Prediction", fontsize=26, rotation=0)
-                plt.ylabel("Ground Truth", fontsize=26)
+                #日本語使いたい時；import japanize_matplotlib
+                probs = self.model.predict_proba(X_test)
+                y_test_one_hot = label_binarize(y_test, classes=model.classes_)
+                n_classes = len(model.classes_)
+                fpr = {}
+                tpr = {}
+                roc_auc = {}
+                for i in range(n_classes):
+                    fpr[i], tpr[i], _ = roc_curve(y_test_one_hot[:, i],probs[:, i])
+                    roc_auc[i] = auc(fpr[i], tpr[i])
+                all_fpr = np.unique(np.concatenate([fpr[i] for i in range(n_classes)]))
+                mean_tpr = np.zeros_like(all_fpr)
+                for i in range(n_classes):
+                    mean_tpr += np.interp(all_fpr, fpr[i], tpr[i])
+                mean_tpr = mean_tpr / len(model.classes_)
+                fpr["macro"] = all_fpr
+                tpr["macro"] = mean_tpr
+                roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
+                
+                plt.figure(figsize=(10, 10))
+                plt.title('Receiver Operating Characteristic')
+                for i in range(n_classes):
+                    plt.plot(fpr[i], tpr[i], label=f'{model.classes_[i]}')
+                plt.plot(fpr['macro'], tpr['macro'], label='macro')
+                plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+                plt.ylabel('True Positive Rate')
+                plt.xlabel('False Positive Rate')
+                plt.show()
+                
 
-            return conf_mat_df, {'imgfiles_test':img_test, 'y_pred':y_pred, 'y_test':y_test} 
+            return conf_mat_df, {'imgfiles_test':img_test, 'y_pred':y_pred, 'y_test':y_test}, {"fpr":fpr, "tpr":tpr, "roc_auc":roc_auc, "model_class":model.classes_}
         else:
             pos_index = 1
             probs = self.model.predict_proba(X_test)
