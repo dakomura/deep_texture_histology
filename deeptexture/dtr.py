@@ -72,6 +72,10 @@ class DTR():
         ])
 
         self.model = self.model.to(self.device)
+        
+        self.avgpool = torch.nn.AvgPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+        
+        self.maxpool = torch.nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
 
     # 特定の中間層の出力を取得するための新しいフォワード関数を定義
     def new_forward(self, x):
@@ -101,22 +105,39 @@ class DTR():
         cbp = F.normalize(cbp, p=2, dim=1)
         
         return cbp
+    
+    def maskavgpool(self, x):
+        x = avgpool(x)
+        x = avgpool(x)
+        
+        return x
+    
+    def maskmaxpool(self, x):
+        x = maxpool(x)
+        x = maxpool(x)
+        
+        return x
+        
 
     def get_dtr(self, 
-                img: Any, 
+                img: Any,
+                img_mask: Any,
                 angle: Union[None, int, List[int]] = None,
                 size: Union[None, int] = None,
                 scale: Union[None, float] = None,
                 multi_scale: bool = False,
+                pooling_method: Any,
                 ) -> np.ndarray:
         """Calculates DTR for an image object or file.
 
         Args:
             img (Any): Image file or image object (numpy array or PIL Image object)
+            img_mask(Any): Image file or image object with target pixel(255, 255, 255), mask pixel(0, 0, 0)(numpy array or PIL Image object)
             angle (Union[None, int, List[int]], optional): Rotation angle(s) (0-360). If list is given, mean DTRs of the rotated image return. Defaults to None.
             size (Union[None, int], optional): Image is resized to the given size. Default to None.
             scale (Union[None, int], optional): Image is rescaled. Active only size is not specified. Default to None.
             multi_scale (bool, optional): DTR for 1/4 sized image is concatenated. The dimension of the DTR will be  2*dim. Default to False.
+            pooling_method: method for pooling the img_mask.'avg' for average pooling, 'max' for max pooling.
 
         Returns:
             np.ndarray: DTR for the image
@@ -128,39 +149,67 @@ class DTR():
             x = np.array(img)
         else:
             x = img
+            
+        if type(img_mask) == str:
+            img_mask = Image.open(img_mask).convert("RGB")
+            x_mask = np.array(img_mask)
+        elif not type(img_mask) == np.ndarray:
+            x_mask = np.array(img_mask)
+        else:
+            x_mask = img_mask
 
         if size is not None:
             x = cv2.resize(x, dsize=[size, size])
+            x_mask = cv2.resize(x_mask, dsize=[size, size])
         elif scale is not None:
             h, w, _ = x.shape
             x = cv2.resize(x, dsize=[int(h*scale), int(w*scale)])
+            x_mask = cv2.resize(x_mask, dsize=[int(h*scale), int(w*scale)])
 
         if multi_scale:
             #1/4 scale
             x2 = cv2.resize(x, dize=None, fx=0.25, fy=0.25)
+            x2_mask = cv2.resize(x_mask, dize=None, fx=0.25, fy=0.25)
 
         if angle is not None:
             if type(angle) == int:
                 x = rotate(x, angle = angle)
+                x_mask = rotate(x_mask, angle = angle)
                 if multi_scale: 
                     x2 = rotate(x2, angle = angle)
+                    x2_mask = rotate(x2_mask, angle = angle)
             elif type(angle) == list:
-                dtrs = np.vstack([self.get_dtr(img, theta, size, scale, multi_scale) for theta in angle])
+                dtrs = np.vstack([self.get_dtr(img, img_mask, theta, size, scale, multi_scale) for theta in angle])
                 dtr_mean = np.mean(dtrs, axis=0)
                 return dtr_mean / np.linalg.norm(dtr_mean, ord=2) #L2-normalize
             else:
                 raise Exception(f"invalid data type in angle {angle}")
-                
 
         x = self.prep(x).unsqueeze(0).to(self.device)
+        x_mask = transforms.ToTensor(x_mask).unsqueeze(0).to(self.device)
         with torch.no_grad():
             x = self.model(x)
+            if pooling_method == 'avg':
+                x_mask = self.maskavgpool(x_mask)
+                return x_mask
+            if pooling_method == 'max':
+                x_mask = self.maskmaxpool(x_mask)
+                return x_mask
+            x = x*x_mask
         dtr = self.forward(x).cpu().detach().numpy()
 
         if multi_scale:
             x2 = self.prep(x2).unsqueeze(0).to(self.device)
+            x2_mask = transforms.ToTensor(x2_mask).unsqueeze(0).to(self.device)
             with torch.no_grad():
                 x2 = self.model(x2)
+                if pooling_method == 'avg':
+                    x2_mask = self.maskavgpool(x2_mask)
+                    return x2_mask
+                if pooling_method == 'max':
+                    x2_mask = self.maskmaxpool(x2_mask)
+                    return x2_mask
+                x2 = x2*x2_mask
             dtr2 = self.forward(x2).cpu().detach().numpy()
             dtr = np.concatenate([dtr, dtr2])
 
@@ -183,9 +232,11 @@ class DTR():
 
     def get_dtr_multifiles(self, 
                            imgfiles: List[str], 
+                           maskfiles: List[str],
                            angle: Union[None, int, List[int]] = None, 
                            size: Union[None, int] = None,
                            scale: Union[None, float] = None,
+                           pooling_method: Any,
                            ) -> np.ndarray:
         """Calculates DTRs for multiple images.
 
@@ -198,7 +249,8 @@ class DTR():
         Returns:
             np.ndarray: DTRs
         """
-        dtrs = np.vstack([self.get_dtr(imgfile, angle=angle, size=size, scale=scale) for imgfile in imgfiles])
+        
+        dtrs = np.vstack([self.get_dtr(imgfile, maskfile, angle=angle, size=size, scale=scale,pooling_method=pooling_method) for imgfile, maskfile in zip(imgfiles, maskfiles)])
     
         return dtrs
     
