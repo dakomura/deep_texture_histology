@@ -233,10 +233,10 @@ class DTR():
     def get_dtr_multifiles(self, 
                            imgfiles: List[str], 
                            maskfiles: List[str],
+                           pooling_method: Any,
                            angle: Union[None, int, List[int]] = None, 
                            size: Union[None, int] = None,
                            scale: Union[None, float] = None,
-                           pooling_method: Any,
                            ) -> np.ndarray:
         """Calculates DTRs for multiple images.
 
