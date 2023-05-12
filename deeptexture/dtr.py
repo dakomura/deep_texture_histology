@@ -109,25 +109,25 @@ class DTR():
     # defining mask pooling layer, down sizing operation to fit 'block3_conv3' or 'block4_conv3' feature map for mask image
     def maskavgpool(self, x):
         if self.i = 16:
-            x = avgpool(x)
-            x = avgpool(x)
+            x = self.avgpool(x)
+            x = self.avgpool(x)
             
         if self.i = 23:
-            x = avgpool(x)
-            x = avgpool(x)
-            x = avgpool(x)
+            x = self.avgpool(x)
+            x = self.avgpool(x)
+            x = self.avgpool(x)
         
             return x
     
     def maskmaxpool(self, x):
         if self.i = 16:
-            x = maxpool(x)
-            x = maxpool(x)
+            x = self.maxpool(x)
+            x = self.maxpool(x)
             
         if self.i = 23:
-            x = maxpool(x)
-            x = maxpool(x)
-            x = maxpool(x)
+            x = self.maxpool(x)
+            x = self.maxpool(x)
+            x = self.maxpool(x)
         
             return x
         
