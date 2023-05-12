@@ -73,9 +73,9 @@ class DTR():
 
         self.model = self.model.to(self.device)
         
-        self.avgpool = torch.nn.AvgPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+        self.avgpool = torch.nn.AvgPool2d(kernel_size=2, stride=2, padding=0, ceil_mode=False)
         
-        self.maxpool = torch.nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+        self.maxpool = torch.nn.MaxPool2d(kernel_size=2, stride=2, padding=0, ceil_mode=False)
 
     # 特定の中間層の出力を取得するための新しいフォワード関数を定義
     def new_forward(self, x):
@@ -106,17 +106,30 @@ class DTR():
         
         return cbp
     
+    # defining mask pooling layer, down sizing operation to fit 'block3_conv3' or 'block4_conv3' feature map for mask image
     def maskavgpool(self, x):
-        x = avgpool(x)
-        x = avgpool(x)
+        if self.i = 16:
+            x = avgpool(x)
+            x = avgpool(x)
+            
+        if self.i = 23:
+            x = avgpool(x)
+            x = avgpool(x)
+            x = avgpool(x)
         
-        return x
+            return x
     
     def maskmaxpool(self, x):
-        x = maxpool(x)
-        x = maxpool(x)
+        if self.i = 16:
+            x = maxpool(x)
+            x = maxpool(x)
+            
+        if self.i = 23:
+            x = maxpool(x)
+            x = maxpool(x)
+            x = maxpool(x)
         
-        return x
+            return x
         
 
     def get_dtr(self, 
@@ -191,10 +204,8 @@ class DTR():
             x = self.model(x)
             if pooling_method == 'avg':
                 x_mask = self.maskavgpool(x_mask)
-                return x_mask
             if pooling_method == 'max':
                 x_mask = self.maskmaxpool(x_mask)
-                return x_mask
             x = x*x_mask
         dtr = self.forward(x).cpu().detach().numpy()
 
@@ -205,10 +216,8 @@ class DTR():
                 x2 = self.model(x2)
                 if pooling_method == 'avg':
                     x2_mask = self.maskavgpool(x2_mask)
-                    return x2_mask
                 if pooling_method == 'max':
                     x2_mask = self.maskmaxpool(x2_mask)
-                    return x2_mask
                 x2 = x2*x2_mask
             dtr2 = self.forward(x2).cpu().detach().numpy()
             dtr = np.concatenate([dtr, dtr2])
@@ -250,7 +259,7 @@ class DTR():
             np.ndarray: DTRs
         """
         
-        dtrs = np.vstack([self.get_dtr(imgfile, maskfile, angle=angle, size=size, scale=scale,pooling_method=pooling_method) for imgfile, maskfile in zip(imgfiles, maskfiles)])
+        dtrs = np.vstack([self.get_dtr(imgfile, maskfile,pooling_method=pooling_method, angle=angle, size=size, scale=scale) for imgfile, maskfile in zip(imgfiles, maskfiles)])
     
         return dtrs
     
