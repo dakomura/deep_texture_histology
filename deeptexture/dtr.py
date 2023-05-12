@@ -70,6 +70,10 @@ class DTR():
             transforms.ToTensor(),
             self.normalize,
         ])
+        
+        self.prep_mask = transforms.Compose([
+            transforms.ToTensor(),
+        ])
 
         self.model = self.model.to(self.device)
         
@@ -192,32 +196,36 @@ class DTR():
                     x2 = rotate(x2, angle = angle)
                     x2_mask = rotate(x2_mask, angle = angle)
             elif type(angle) == list:
-                dtrs = np.vstack([self.get_dtr(img, img_mask, theta, size, scale, multi_scale) for theta in angle])
+                dtrs = np.vstack([self.get_dtr(img, img_mask, pooling_method, theta, size, scale, multi_scale) for theta in angle])
                 dtr_mean = np.mean(dtrs, axis=0)
                 return dtr_mean / np.linalg.norm(dtr_mean, ord=2) #L2-normalize
             else:
                 raise Exception(f"invalid data type in angle {angle}")
 
         x = self.prep(x).unsqueeze(0).to(self.device)
-        x_mask = transforms.ToTensor(x_mask).unsqueeze(0).to(self.device)
+        x_mask = self.prep_mask(x_mask).unsqueeze(0).to(self.device)
         with torch.no_grad():
             x = self.model(x)
             if pooling_method == 'avg':
                 x_mask = self.maskavgpool(x_mask)
             if pooling_method == 'max':
                 x_mask = self.maskmaxpool(x_mask)
+            x_mask = x_mask[0][0].unsqueeze(0).unsqueeze(0)
+            x_mask = torch.round(x_mask, decimals = 3)
             x = x*x_mask
         dtr = self.forward(x).cpu().detach().numpy()
 
         if multi_scale:
             x2 = self.prep(x2).unsqueeze(0).to(self.device)
-            x2_mask = transforms.ToTensor(x2_mask).unsqueeze(0).to(self.device)
+            x2_mask = self.prep_mask(x2_mask).unsqueeze(0).to(self.device)
             with torch.no_grad():
                 x2 = self.model(x2)
                 if pooling_method == 'avg':
                     x2_mask = self.maskavgpool(x2_mask)
                 if pooling_method == 'max':
                     x2_mask = self.maskmaxpool(x2_mask)
+                x2_mask = x2_mask[0][0].unsqueeze(0).unsqueeze(0)
+                x2_mask = torch.round(x2_mask, decimals = 3)
                 x2 = x2*x2_mask
             dtr2 = self.forward(x2).cpu().detach().numpy()
             dtr = np.concatenate([dtr, dtr2])
