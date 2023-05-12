@@ -122,11 +122,11 @@ class DTR():
     def get_dtr(self, 
                 img: Any,
                 img_mask: Any,
+                pooling_method: Any,
                 angle: Union[None, int, List[int]] = None,
                 size: Union[None, int] = None,
                 scale: Union[None, float] = None,
                 multi_scale: bool = False,
-                pooling_method: Any,
                 ) -> np.ndarray:
         """Calculates DTR for an image object or file.
 
