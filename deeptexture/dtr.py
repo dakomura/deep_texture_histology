@@ -134,9 +134,92 @@ class DTR():
             x = self.maxpool(x)
         
             return x
-        
 
     def get_dtr(self, 
+                img: Any,
+                angle: Union[None, int, List[int]] = None,
+                size: Union[None, int] = None,
+                scale: Union[None, float] = None,
+                multi_scale: bool = False,
+                ) -> np.ndarray:
+        """Calculates DTR for an image object or file.
+
+        Args:
+            img (Any): Image file or image object (numpy array or PIL Image object)
+            angle (Union[None, int, List[int]], optional): Rotation angle(s) (0-360). If list is given, mean DTRs of the rotated image return. Defaults to None.
+            size (Union[None, int], optional): Image is resized to the given size. Default to None.
+            scale (Union[None, int], optional): Image is rescaled. Active only size is not specified. Default to None.
+            multi_scale (bool, optional): DTR for 1/4 sized image is concatenated. The dimension of the DTR will be  2*dim. Default to False.
+
+        Returns:
+            np.ndarray: DTR for the image
+        """
+        if type(img) == str:
+            img = Image.open(img).convert("RGB")
+            x = np.array(img)
+        elif not type(img) == np.ndarray:
+            x = np.array(img)
+        else:
+            x = img
+
+        if size is not None:
+            x = cv2.resize(x, dsize=[size, size])
+        elif scale is not None:
+            h, w, _ = x.shape
+            x = cv2.resize(x, dsize=[int(h*scale), int(w*scale)])
+
+        if multi_scale:
+            #1/4 scale
+            x2 = cv2.resize(x, dize=None, fx=0.25, fy=0.25)
+
+        if angle is not None:
+            if type(angle) == int:
+                x = rotate(x, angle = angle)
+                if multi_scale: 
+                    x2 = rotate(x2, angle = angle)
+            elif type(angle) == list:
+                dtrs = np.vstack([self.get_dtr(img, img_mask, pooling_method, theta, size, scale, multi_scale) for theta in angle])
+                dtr_mean = np.mean(dtrs, axis=0)
+                return dtr_mean / np.linalg.norm(dtr_mean, ord=2) #L2-normalize
+            else:
+                raise Exception(f"invalid data type in angle {angle}")
+
+        x = self.prep(x).unsqueeze(0).to(self.device)
+        with torch.no_grad():
+            x = self.model(x)
+        dtr = self.forward(x).cpu().detach().numpy()
+
+        if multi_scale:
+            x2 = self.prep(x2).unsqueeze(0).to(self.device)
+            with torch.no_grad():
+                x2 = self.model(x2)
+            dtr2 = self.forward(x2).cpu().detach().numpy()
+            dtr = np.concatenate([dtr, dtr2])
+
+        return dtr
+    
+    def get_dtr_multifiles(self, 
+                           imgfiles: List[str], 
+                           angle: Union[None, int, List[int]] = None, 
+                           size: Union[None, int] = None,
+                           scale: Union[None, float] = None,
+                           ) -> np.ndarray:
+        """Calculates DTRs for multiple images.
+
+        Args:
+            imgfiles (List[str]): List of image files.
+            angle (Union[None, int, List[int]], optional): Rotation angle(s) (0-360). If list is given, mean DTRs of the rotated image return. Defaults to None.
+            size (Union[None, int], optional): Image is resized to the given size. Default to None.
+            scale (Union[None, int], optional): Image is rescaled. Active only size is not specified. Default to None.
+
+        Returns:
+            np.ndarray: DTRs
+        """
+        dtrs = np.vstack([self.get_dtr(imgfile, angle=angle, size=size, scale=scale) for imgfile in imgfiles])
+    
+        return dtrs
+
+    def get_dtr_maskpool(self, 
                 img: Any,
                 img_mask: Any,
                 pooling_method: Any,
@@ -247,7 +330,7 @@ class DTR():
         similarity = np.dot(x,y)/(np.linalg.norm(x,2)*np.linalg.norm(y,2))
         return similarity
 
-    def get_dtr_multifiles(self, 
+    def get_dtr_maskpool_multifiles(self, 
                            imgfiles: List[str], 
                            maskfiles: List[str],
                            pooling_method: Any,
