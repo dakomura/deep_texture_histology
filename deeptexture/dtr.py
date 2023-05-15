@@ -213,11 +213,11 @@ class DTR():
         Args:
             img (Any): Image file or image object (numpy array or PIL Image object)
             img_mask(Any): Image file or image object with target pixel(255, 255, 255), mask pixel(0, 0, 0)(numpy array or PIL Image object)
+            pooling_method: method for pooling the img_mask.'avg' for average pooling, 'max' for max pooling.
             angle (Union[None, int, List[int]], optional): Rotation angle(s) (0-360). If list is given, mean DTRs of the rotated image return. Defaults to None.
             size (Union[None, int], optional): Image is resized to the given size. Default to None.
             scale (Union[None, int], optional): Image is rescaled. Active only size is not specified. Default to None.
             multi_scale (bool, optional): DTR for 1/4 sized image is concatenated. The dimension of the DTR will be  2*dim. Default to False.
-            pooling_method: method for pooling the img_mask.'avg' for average pooling, 'max' for max pooling.
 
         Returns:
             np.ndarray: DTR for the image
@@ -343,6 +343,8 @@ class DTR():
 
         Args:
             imgfiles (List[str]): List of image files.
+            maskfiles(List[str]): List of mask files.
+            pooling_method: method for pooling the img_mask.'avg' for average pooling, 'max' for max pooling.
             angle (Union[None, int, List[int]], optional): Rotation angle(s) (0-360). If list is given, mean DTRs of the rotated image return. Defaults to None.
             size (Union[None, int], optional): Image is resized to the given size. Default to None.
             scale (Union[None, int], optional): Image is rescaled. Active only size is not specified. Default to None.
