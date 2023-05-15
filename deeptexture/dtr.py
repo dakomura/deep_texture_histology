@@ -310,6 +310,27 @@ class DTR():
         similarity = np.dot(x,y)/(np.linalg.norm(x,2)*np.linalg.norm(y,2))
         return similarity
 
+    def get_dtr_multifiles(self, 
+                           imgfiles: List[str], 
+                           angle: Union[None, int, List[int]] = None, 
+                           size: Union[None, int] = None,
+                           scale: Union[None, float] = None,
+                           ) -> np.ndarray:
+        """Calculates DTRs for multiple images.
+
+        Args:
+            imgfiles (List[str]): List of image files.
+            angle (Union[None, int, List[int]], optional): Rotation angle(s) (0-360). If list is given, mean DTRs of the rotated image return. Defaults to None.
+            size (Union[None, int], optional): Image is resized to the given size. Default to None.
+            scale (Union[None, int], optional): Image is rescaled. Active only size is not specified. Default to None.
+
+        Returns:
+            np.ndarray: DTRs
+        """
+        dtrs = np.vstack([self.get_dtr(imgfile, angle=angle, size=size, scale=scale) for imgfile in imgfiles])
+    
+        return dtrs
+
     def get_dtr_maskpool_multifiles(self, 
                            imgfiles: List[str], 
                            maskfiles: List[str],
@@ -334,26 +355,6 @@ class DTR():
     
         return dtrs
     
-    def get_dtr_multifiles(self, 
-                           imgfiles: List[str], 
-                           angle: Union[None, int, List[int]] = None, 
-                           size: Union[None, int] = None,
-                           scale: Union[None, float] = None,
-                           ) -> np.ndarray:
-        """Calculates DTRs for multiple images.
-
-        Args:
-            imgfiles (List[str]): List of image files.
-            angle (Union[None, int, List[int]], optional): Rotation angle(s) (0-360). If list is given, mean DTRs of the rotated image return. Defaults to None.
-            size (Union[None, int], optional): Image is resized to the given size. Default to None.
-            scale (Union[None, int], optional): Image is rescaled. Active only size is not specified. Default to None.
-
-        Returns:
-            np.ndarray: DTRs
-        """
-        dtrs = np.vstack([self.get_dtr(imgfile, angle=angle, size=size, scale=scale) for imgfile in imgfiles])
-    
-        return dtrs
     
     def get_mean_dtrs(self,
                       dtrs: np.ndarray,
