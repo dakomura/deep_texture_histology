@@ -20,7 +20,6 @@ INSTALL_REQUIRES = [
     'torch',
     'joblib',
     'Pillow',
-    'nmslib',
     'matplotlib',
     'scikit-learn',
     'seaborn',
