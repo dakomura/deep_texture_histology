@@ -306,8 +306,13 @@ class CBIR:
             #mag = data.magnification
             if fkey is not None:
                 v = self.df_attr[fkey][res]
-                if not v in fval:
-                    continue
+                if '/' in v: #multiple values in val
+                    vs = v.split('/')
+                    if np.sum([v_each in fval for v_each in vs]) == 0:
+                        continue
+                else:
+                    if not v in fval:
+                        continue
                 
 
             if not patient in patients: #remove patient-level duplicates
