@@ -4,21 +4,32 @@ from pyrsistent import mutant
 import numpy as np
 import cv2
 import pandas as pd
+import os
 
 import torch
-from torch import nn
-from torchvision.models import vgg16, VGG16_Weights
+from torchvision.models import vgg16, VGG16_Weights, resnet18
 from collections import namedtuple
 from torchvision import transforms
 from scipy.ndimage import rotate
 import torch.nn.functional as F
+import pytorch_lightning as pl
+from lightly.models.modules.heads import TiCoProjectionHead
 
 
 from .utils import *
 
+class TiCo(pl.LightningModule):
+    def __init__(self, backbone, hidden_dim, out_dim):
+        super().__init__()
+        self.backbone = backbone
+        self.projection_head = TiCoProjectionHead(hidden_dim, hidden_dim, out_dim)
+        #self.criterion = TiCoLoss()
+
+
 class DTR():
     def __init__(self, 
                  arch: str = 'vgg', #only vgg is supported
+                 model_dir: str = None,
                  layer: str = 'block3_conv3',
                  dim: int = 1024,
                  rand_1: Union[int, None] = None, 
@@ -26,40 +37,49 @@ class DTR():
                  device: Union[int, str] = 'cuda:0',
                  ):
 
+        self.arch = arch
         self.device = device
 
         if arch == 'vgg':       
             self.model = vgg16(weights=VGG16_Weights.IMAGENET1K_FEATURES)
             self.model.eval()
 
+            if layer == 'block3_conv3':
+                self.i = 16
+            elif layer == 'block4_conv3':
+                self.i = 23
+            else:
+                raise ("Only block3_conv3 or block4_conv3 layers are supported in this version.")
+
+
+            # 新しいフォワード関数をモデルに適用
+            self.model.forward = self.new_forward.__get__(self.model, self.model.__class__)
+
+            self.features_list = list(self.model.features)[:self.i]
+            self.input_dim = self.features_list[-2].out_channels
+
+            self.output_dim = dim
+
+            if rand_1 is None:
+                np.random.seed(128)
+                rand_1 = np.random.randint(2,size=(self.input_dim, self.output_dim))*2-1
+                self.rand_1 = torch.Tensor(rand_1).to(device)
+                
+            if rand_2 is None:
+                np.random.seed(1997)
+                rand_2 = np.random.randint(2,size=(self.input_dim, self.output_dim))*2-1
+                self.rand_2 = torch.Tensor(rand_2).to(device)
+
+        elif arch == 'tico':
+            resnet = resnet18()
+            resnet = torch.nn.Sequential(*list(resnet.children())[:-1])
+            self.model = TiCo.load_from_checkpoint(os.path.join(model_dir, "TiCo_SSL_model.pt"), 
+                                                   backbone=resnet, hidden_dim=512, out_dim=128)
+            self.model = self.model.backbone
+            self.model.eval()            
+
         else:
-            raise ("Only VGG16 model is supported in this version.")
-
-        if layer == 'block3_conv3':
-            self.i = 16
-        elif layer == 'block4_conv3':
-            self.i = 23
-        else:
-            raise ("Only block3_conv3 or block4_conv3 layers are supported in this version.")
-
-
-        # 新しいフォワード関数をモデルに適用
-        self.model.forward = self.new_forward.__get__(self.model, self.model.__class__)
-
-        self.features_list = list(self.model.features)[:self.i]
-        self.input_dim = self.features_list[-2].out_channels
-
-        self.output_dim = dim
-
-        if rand_1 is None:
-            np.random.seed(128)
-            rand_1 = np.random.randint(2,size=(self.input_dim, self.output_dim))*2-1
-            self.rand_1 = torch.Tensor(rand_1).to(device)
-            
-        if rand_2 is None:
-            np.random.seed(1997)
-            rand_2 = np.random.randint(2,size=(self.input_dim, self.output_dim))*2-1
-            self.rand_2 = torch.Tensor(rand_2).to(device)
+            raise ("Only VGG16 or SSL TiCo model are supported in this version.")
 
         self.normalize = transforms.Normalize(
             mean=[0.485, 0.456, 0.406],
@@ -154,14 +174,20 @@ class DTR():
 
         x = self.prep(x).unsqueeze(0).to(self.device)
         with torch.no_grad():
-            x = self.model(x)
-        dtr = self.forward(x).cpu().detach().numpy()
+            if self.arch == 'vgg':
+                x = self.forward(self.model(x))
+            elif self.arch == 'tico':
+                x = self.model(x)
+            dtr = x.cpu().detach().numpy()
 
         if multi_scale:
             x2 = self.prep(x2).unsqueeze(0).to(self.device)
             with torch.no_grad():
-                x2 = self.model(x2)
-            dtr2 = self.forward(x2).cpu().detach().numpy()
+                if self.arch == 'vgg':
+                    x2 = self.forward(self.model(x2))
+                elif self.arch == 'tico':
+                    x2 = self.model(x)
+                dtr2 = x2.cpu().detach().numpy()
             dtr = np.concatenate([dtr, dtr2])
 
         return dtr
