@@ -190,7 +190,7 @@ class DTR():
                 dtr2 = x2.cpu().detach().numpy()
             dtr = np.concatenate([dtr, dtr2])
 
-        return dtr
+        return dtr.squeeze()
 
     def sim(self, 
             x: np.ndarray,
