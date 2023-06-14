@@ -78,7 +78,6 @@ class CBIR:
         ucases = np.unique(cases)
         types = np.array(df_attr[type_attr])
         cats = [types[np.where(cases == case)[0][0]] for case in ucases]
-        self.cat_counter = collections.Counter(cats)
 
         if save:
             self.save_db()
@@ -90,8 +89,7 @@ class CBIR:
 
         joblib.dump({'img_attr':self.img_attr,
                     'case_attr':self.case_attr,
-                    'type_attr':self.type_attr,
-                    'cat_counter':self.cat_counter},
+                    'type_attr':self.type_attr},
                     '{}/{}/attr.pkl'.format(self.working_dir,
                                             self.project,
                     ))
@@ -125,7 +123,6 @@ class CBIR:
         self.img_attr = attr['img_attr']
         self.case_attr = attr['case_attr']
         self.type_attr = attr['type_attr']
-        self.cat_counter = attr['cat_counter']
 
         print (f"{self.project} loaded. img_attr:{self.img_attr}, case_attr:{self.case_attr}, type_attr{self.type_attr}")
 
@@ -471,8 +468,6 @@ class CBIR:
         df_merged = df_merged.sort_values('agg_sim', ascending=False)
         df_merged = df_merged.iloc[:min(n, df_merged.shape[0]),:]
 
-        max_category = self._weighted_knn(df_merged['agg_sim'], df_merged['category_0'], n=n)
-        #print ("The most probable diagnosis: ", max_category)
 
         qn = len(qimgfiles)
       
@@ -509,23 +504,3 @@ class CBIR:
                 plt.savefig(outfile, dpi=dpi)
             
         return df_merged
-
-    def _weighted_knn(self, 
-                      sims, 
-                      cats, 
-                      n: int = 10):
-        """Distance and 1/N_samples weighted kNN
-        Args:
-            sims (np.ndarray): similarity.
-            cats (list): categories.
-            n (int, optional): The number of retrieved images. Defaults to 10.
-        """
-        weights = np.array([1./(1.01-s)/(self.cat_counter[c]+1) for s,c in zip(sims, cats)])
-        weights = weights[:min(n, len(sims))]
-        df = pd.DataFrame({'category':cats,
-                           'weight': weights})
-        df = df.dropna(subset=['category'])
-        df = df[df['category'] != 0]
-        print (df)
-        max_category = df.groupby('category').sum().idxmax().values[0]
-        return max_category
