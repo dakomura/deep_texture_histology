@@ -1,3 +1,4 @@
+import random
 from typing import Any, List, Union
 from matplotlib import pyplot as plt
 from matplotlib.offsetbox import OffsetImage,AnnotationBbox
@@ -25,6 +26,7 @@ def plt_dtr_image(X: np.ndarray,
                   text:Union[None, List[str]] = None,
                   show_medoid: bool = False,
                   cases: Union[None, str] = None,
+                  nimgs: int = 0,
                   **kwargs,
                   ) -> np.ndarray:
     """Plot DTRs in two-dimensional space given or calculated by the specified dimensionality reduction method. 
@@ -42,6 +44,7 @@ def plt_dtr_image(X: np.ndarray,
         text (Union[None, List[str]], optional): Show text if not None. Defaults to Union[None, List[str]]. Defaults to None.
         show_medoid (bool, optional): only show medoid. Active if DTRs are given as X. Defaults to False.
         cases (Union[None, str], optional): Cases for each image. Valid only if show_medoid is True. Defaults to None.
+        nimgs (int, optional): number of images shown. The images are randomly chosen. Valid only when show_medoid = False. Defaults to 0 (all images).
 
     Returns:
         np.ndarray: Two-dimensional coordicates of DTRs for N images (Nx2 array) 
@@ -97,9 +100,14 @@ def plt_dtr_image(X: np.ndarray,
                 ab = _get_ab(file, 0.05*scale, X_emb[i,0],X_emb[i,1])
                 ax.add_artist(ab)
     else:
+        if nimgs > 0:
+            newfiles = random.sample(files, nimgs)
+        else:
+            newfiles = files
         for i, file in enumerate(files):
-            ab = _get_ab(file, 0.05*scale, X_emb[i,0],X_emb[i,1])
-            ax.add_artist(ab)
+            if file in newfiles: 
+                ab = _get_ab(file, 0.05*scale, X_emb[i,0],X_emb[i,1])
+                ax.add_artist(ab)
             
     width1 = (np.max(X_emb[:,0]) - np.min(X_emb[:,0]))*0.1
     height1 = (np.max(X_emb[:,1]) - np.min(X_emb[:,1]))*0.1
