@@ -71,6 +71,8 @@ def plt_dtr_image(X: np.ndarray,
             raise Exception("Please specify valid embedding method.")
         X_emb = _embed(X, method, **kwargs)
 
+    print("Embedding calculation done.")
+
     if show_medoid:
         if cases is None or len(cases) != len(files):
             raise Exception("Invalid values for cases.")
@@ -101,7 +103,7 @@ def plt_dtr_image(X: np.ndarray,
                 ax.add_artist(ab)
     else:
         if nimgs > 0:
-            newfiles = random.sample(files, nimgs)
+            newfiles = random.sample(list(files), nimgs)
         else:
             newfiles = files
         for i, file in enumerate(files):
